@@ -1,0 +1,10 @@
+# This file contains values from Cookiecutter
+
+default_context:
+  project_name: "copier-python-template"
+  package_name: "copier_python_template"
+  git_platform: "github"
+  username: "a1d4r"
+  git_repo_url: "https://github.com/a1d4r/copier-python-template"
+  python_version: "3.14"
+  line_length: "100"

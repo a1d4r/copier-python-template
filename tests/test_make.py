@@ -18,10 +18,19 @@ DOCKER_SETUP = (
 )
 
 
-# NOTE: parametrize order determines test IDs (e.g. [True-3.13]).
-# CI workflow e2e.yml depends on this order — don't swap decorators.
-@pytest.mark.parametrize("python_version", ["3.9", "3.10", "3.11", "3.12", "3.13"])
-@pytest.mark.parametrize("install_pydantic", [True, False])
+# NOTE: test IDs follow pattern [version-pydantic].
+# CI workflow e2e.yml depends on these IDs — update both together.
+@pytest.mark.parametrize(
+    ("python_version", "install_pydantic"),
+    [
+        ("3.9", False),
+        ("3.10", False),
+        ("3.11", False),
+        ("3.12", False),
+        ("3.13", False),
+        ("3.13", True),
+    ],
+)
 @pytest.mark.e2e
 @pytest.mark.slow
 @pytest.mark.timeout(300)

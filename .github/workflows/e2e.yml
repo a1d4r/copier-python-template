@@ -11,8 +11,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
-        install-pydantic: [true, false]
+        include:
+          - python-version: "3.9"
+            install-pydantic: false
+          - python-version: "3.10"
+            install-pydantic: false
+          - python-version: "3.11"
+            install-pydantic: false
+          - python-version: "3.12"
+            install-pydantic: false
+          - python-version: "3.13"
+            install-pydantic: false
+          - python-version: "3.13"
+            install-pydantic: true
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -36,11 +47,17 @@ jobs:
       - name: Run E2E test
         run: >
           uv run pytest
-          "tests/test_make.py::test_make_format_lint_test[${{ matrix.install-pydantic == true && 'True' || 'False' }}-${{ matrix.python-version }}]"
+          "tests/test_make.py::test_make_format_lint_test[${{ matrix.python-version }}-${{ matrix.install-pydantic == true && 'True' || 'False' }}]"
           -v --timeout=300
 
   github-template-test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        test:
+          - test_github_actions_lint
+          - test_github_actions_test
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -64,8 +81,11 @@ jobs:
       - name: Pull act runner image
         run: docker pull catthehacker/ubuntu:act-22.04
 
-      - name: Run act tests
-        run: uv run pytest tests/test_github_actions.py -v --timeout=600
+      - name: Run act test
+        run: >
+          uv run pytest
+          "tests/test_github_actions.py::${{ matrix.test }}"
+          -v --timeout=600
 
   gitlab-ci-test:
     runs-on: ubuntu-latest

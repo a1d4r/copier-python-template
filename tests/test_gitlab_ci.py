@@ -20,9 +20,6 @@ def test_gitlab_ci_pipeline(gitlab_project_committed: Path) -> None:
     check_tool("docker")
 
     result = subprocess.run(
-        ["gitlab-ci-local", "--file", ".gitlab-ci.yml"],
-        cwd=gitlab_project_committed,
-        capture_output=True,
-        text=True,
+        ["gitlab-ci-local", "--file", ".gitlab-ci.yml"], cwd=gitlab_project_committed
     )
-    assert result.returncode == 0, f"STDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
+    assert result.returncode == 0

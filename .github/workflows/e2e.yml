@@ -38,3 +38,31 @@ jobs:
           uv run pytest
           "tests/test_make.py::test_make_format_lint_test[${{ matrix.install-pydantic == true && 'True' || 'False' }}-${{ matrix.python-version }}]"
           -v --timeout=300
+
+  act-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install dependencies
+        run: uv sync --locked --all-extras --dev
+
+      - name: Install act
+        run: curl -s https://raw.githubusercontent.com/nektos/act/master/install.sh | bash -s -- -b /usr/local/bin v0.2.84
+
+      - name: Pull act runner image
+        run: docker pull catthehacker/ubuntu:act-22.04
+
+      - name: Run act tests
+        run: uv run pytest tests/test_github_actions.py -v --timeout=600

@@ -1,8 +1,13 @@
+from typing import TYPE_CHECKING
+
 import shutil
 
 from pathlib import Path
 
 import pytest
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 from copier import run_copy
 
@@ -42,13 +47,19 @@ def _generate_project(
 
 
 @pytest.fixture(scope="module")
-def default_project(tmp_path_factory):
+def default_project(tmp_path_factory: pytest.TempPathFactory) -> Path:
     """Default project (github, pydantic=True, python 3.13). Shared across module."""
     return _generate_project(tmp_path_factory.mktemp("default") / "test-project")
 
 
 @pytest.fixture(scope="module")
-def gitlab_project(tmp_path_factory):
+def github_project(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """GitHub project (pydantic=True, python 3.13). Shared across module."""
+    return _generate_project(tmp_path_factory.mktemp("github") / "test-project")
+
+
+@pytest.fixture(scope="module")
+def gitlab_project(tmp_path_factory: pytest.TempPathFactory) -> Path:
     """GitLab project (pydantic=True, python 3.13). Shared across module."""
     return _generate_project(
         tmp_path_factory.mktemp("gitlab") / "test-project", git_platform="gitlab"
@@ -56,7 +67,7 @@ def gitlab_project(tmp_path_factory):
 
 
 @pytest.fixture
-def generate_project(tmp_path):
+def generate_project(tmp_path: Path) -> Callable[..., Path]:
     """Factory fixture for generating a project with custom parameters."""
 
     def _generate(

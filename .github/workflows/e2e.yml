@@ -39,7 +39,7 @@ jobs:
           "tests/test_make.py::test_make_format_lint_test[${{ matrix.install-pydantic == true && 'True' || 'False' }}-${{ matrix.python-version }}]"
           -v --timeout=300
 
-  act-test:
+  github-template-test:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository

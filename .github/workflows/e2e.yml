@@ -1,0 +1,116 @@
+name: E2E Template Tests
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  make-test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - python-version: "3.9"
+            install-pydantic: false
+          - python-version: "3.10"
+            install-pydantic: false
+          - python-version: "3.11"
+            install-pydantic: false
+          - python-version: "3.12"
+            install-pydantic: false
+          - python-version: "3.13"
+            install-pydantic: false
+          - python-version: "3.13"
+            install-pydantic: true
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # copier needs full git history for vcs_ref=HEAD
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install dependencies
+        run: uv sync --locked --all-extras --dev
+
+      - name: Pull Docker image
+        run: docker pull ghcr.io/astral-sh/uv:python${{ matrix.python-version }}-bookworm-slim
+
+      - name: Run E2E test
+        run: >
+          uv run pytest
+          "tests/test_make.py::test_make_format_lint_test[${{ matrix.python-version }}-${{ matrix.install-pydantic == true && 'True' || 'False' }}]"
+          -v --timeout=300
+
+  github-template-test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        test:
+          - test_github_actions_lint
+          - test_github_actions_test
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install dependencies
+        run: uv sync --locked --all-extras --dev
+
+      - name: Install act
+        run: curl -s https://raw.githubusercontent.com/nektos/act/master/install.sh | bash -s -- -b /usr/local/bin v0.2.84
+
+      - name: Pull act runner image
+        run: docker pull catthehacker/ubuntu:act-22.04
+
+      - name: Run act test
+        run: >
+          uv run pytest
+          "tests/test_github_actions.py::${{ matrix.test }}"
+          -v --timeout=600
+
+  gitlab-ci-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install dependencies
+        run: uv sync --locked --all-extras --dev
+
+      - name: Install gitlab-ci-local
+        run: npm install -g gitlab-ci-local@4.70.1
+
+      - name: Pull Python image
+        run: docker pull python:3.13
+
+      - name: Run gitlab-ci-local tests
+        run: uv run pytest tests/test_gitlab_ci.py -v --timeout=600

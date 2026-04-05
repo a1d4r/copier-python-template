@@ -6,14 +6,14 @@ dependencies = []
 
 [dependency-groups]
 dev = [
-    "copier>=9.0.0",
-    "mypy>=1.15.0,<2",
-    "pre-commit>=4.2.0,<5",
-    "pytest>=8.3.5,<9",
-    "pytest-cov>=6.2.1,<7",
-    "pytest-timeout>=2.3.1,<3",
-    "coverage>=7.8.0,<8",
-    "ruff>=0.12.11,<0.13",
+    "copier>=9.14.1",
+    "mypy>=1.20.0,<2",
+    "pre-commit>=4.5.1,<5",
+    "pytest>=9.0.2,<10",
+    "pytest-cov>=7.1.0,<8",
+    "pytest-timeout>=2.4.0,<3",
+    "coverage>=7.13.5,<8",
+    "ruff>=0.15.9,<0.16",
 ]
 
 [tool.uv]
@@ -42,7 +42,13 @@ disallow_untyped_calls = false
 [tool.pytest.ini_options]
 # https://docs.pytest.org/en/6.2.x/customize.html#pyproject-toml
 # https://docs.pytest.org/en/latest/reference/reference.html#ini-options-ref
-filterwarnings = ["error", "ignore::DeprecationWarning", "ignore::ImportWarning"]
+filterwarnings = [
+  "error",
+  "ignore::DeprecationWarning",
+  "ignore::ImportWarning",
+  "ignore::copier.errors.DirtyLocalWarning",
+  "ignore::copier.errors.ShallowCloneWarning"
+]
 testpaths = ["tests"]
 xfail_strict = true
 
@@ -115,7 +121,12 @@ allowed-confusables = [
 ]
 "tests/**/*.py" = [
   "S101", # Use of assert detected (assert allowed in tests)
+  "S603", # subprocess call (trusted input in tests)
+  "S607", # partial executable path (docker, act, etc.)
+  "FBT001", # Boolean-typed positional argument
+  "FBT002", # Boolean default positional argument
   "PLR2004", # Magic value used in comparison
+  "PLW1510", # subprocess.run without check (we check returncode manually)
 ]
 
 [tool.ruff.lint.flake8-tidy-imports]

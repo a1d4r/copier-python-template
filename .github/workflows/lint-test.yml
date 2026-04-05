@@ -48,11 +48,12 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
-    permissions: write-all
     steps:
 
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # copier needs full git history for vcs_ref=HEAD
 
       - name: Set up Python
         id: setup-python
@@ -74,23 +75,5 @@ jobs:
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
         run: uv sync --locked --all-extras --dev
 
-      - name: Run tests
-        run: make test
-
-      - name: Code Coverage Summary Report
-        uses: irongut/CodeCoverageSummary@v1.3.0
-        with:
-          filename: reports/coverage.xml
-          badge: true
-          format: 'markdown'
-          output: 'both'
-
-      - name: Add Coverage PR Comment
-        uses: marocchino/sticky-pull-request-comment@v2
-        if: github.event_name == 'pull_request'
-        with:
-          recreate: true
-          path: code-coverage-results.md
-
-      - name: Add Coverage Report to Job Summary
-        run: cat code-coverage-results.md >> $GITHUB_STEP_SUMMARY
+      - name: Run tests (excluding e2e)
+        run: uv run pytest -m "not e2e"

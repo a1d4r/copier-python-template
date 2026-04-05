@@ -42,7 +42,13 @@ disallow_untyped_calls = false
 [tool.pytest.ini_options]
 # https://docs.pytest.org/en/6.2.x/customize.html#pyproject-toml
 # https://docs.pytest.org/en/latest/reference/reference.html#ini-options-ref
-filterwarnings = ["error", "ignore::DeprecationWarning", "ignore::ImportWarning", "ignore::copier.errors.DirtyLocalWarning"]
+filterwarnings = [
+  "error",
+  "ignore::DeprecationWarning",
+  "ignore::ImportWarning",
+  "ignore::copier.errors.DirtyLocalWarning",
+  "ignore::copier.errors.ShallowCloneWarning"
+]
 testpaths = ["tests"]
 xfail_strict = true
 

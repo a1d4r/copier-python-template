@@ -1,6 +1,8 @@
 from typing import TYPE_CHECKING
 
+import os
 import shutil
+import subprocess
 
 from pathlib import Path
 
@@ -18,6 +20,25 @@ def check_tool(name: str) -> None:
     """Skip test if CLI tool is not installed."""
     if shutil.which(name) is None:
         pytest.skip(f"{name} not found")
+
+
+def git_commit(project: Path) -> None:
+    """Create initial commit — act/gitlab-ci-local only sync tracked files."""
+    subprocess.run(["git", "add", "-A"], cwd=project, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "init"],
+        cwd=project,
+        check=True,
+        capture_output=True,
+        env={
+            **os.environ,
+            "GIT_AUTHOR_NAME": "Test",
+            "GIT_AUTHOR_EMAIL": "t@t",
+            "GIT_COMMITTER_NAME": "Test",
+            "GIT_COMMITTER_EMAIL": "t@t",
+            "HOME": str(project.parent),
+        },
+    )
 
 
 def _generate_project(
@@ -59,11 +80,29 @@ def github_project(tmp_path_factory: pytest.TempPathFactory) -> Path:
 
 
 @pytest.fixture(scope="module")
+def github_project_committed(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """GitHub project with initial commit. For act tests."""
+    project = _generate_project(tmp_path_factory.mktemp("github-committed") / "test-project")
+    git_commit(project)
+    return project
+
+
+@pytest.fixture(scope="module")
 def gitlab_project(tmp_path_factory: pytest.TempPathFactory) -> Path:
     """GitLab project (pydantic=True, python 3.13). Shared across module."""
     return _generate_project(
         tmp_path_factory.mktemp("gitlab") / "test-project", git_platform="gitlab"
     )
+
+
+@pytest.fixture(scope="module")
+def gitlab_project_committed(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """GitLab project with initial commit. For gitlab-ci-local tests."""
+    project = _generate_project(
+        tmp_path_factory.mktemp("gitlab-committed") / "test-project", git_platform="gitlab"
+    )
+    git_commit(project)
+    return project
 
 
 @pytest.fixture

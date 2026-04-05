@@ -5,4 +5,4 @@ services:
       dockerfile: Dockerfile
       target: development
     volumes:
-      - ./copier_python_template:/app/copier_python_template
+      - ./{{ package_name }}:/app/{{ package_name }}

@@ -1,0 +1,66 @@
+_min_copier_version: "9.0.0"
+_subdirectory: template
+_templates_suffix: .jinja
+
+_exclude:
+  - "*.pyc"
+  - __pycache__
+  - .git
+  - .DS_Store
+
+# Questions
+project_name:
+  type: str
+  help: Project name
+  default: "python-project"
+
+package_name:
+  type: str
+  help: Python package name
+  default: "{{ project_name | lower | replace(' ', '-') | replace('-', '_') }}"
+  validator: >-
+    {% if not (package_name | regex_search('^[a-z][a-z0-9\\_\\-]+[a-z0-9]$')) %}
+    Must be a valid Python module name (lowercase, starts with letter).
+    {% endif %}
+
+git_platform:
+  type: str
+  help: Git hosting platform
+  choices:
+    GitHub: github
+    GitLab: gitlab
+  default: github
+
+username:
+  type: str
+  help: Username on the git platform
+  default: "username"
+
+git_repo_url:
+  type: str
+  help: Git repository URL
+  default: "https://{{ git_platform }}.com/{{ username | lower }}/{{ project_name | lower | replace(' ', '-') }}"
+
+python_version:
+  type: str
+  help: Minimum Python version
+  default: "3.9"
+
+line_length:
+  type: int
+  help: Max line length for ruff (50-300)
+  default: 88
+  validator: >-
+    {% if line_length < 50 or line_length > 300 %}
+    Line length must be between 50 and 300.
+    {% endif %}
+
+install_pydantic:
+  type: bool
+  help: Include Pydantic as a dependency?
+  default: true
+
+_tasks:
+  - "git init"
+  - command: "uv sync"
+    when: "{{ _copier_operation == 'copy' }}"

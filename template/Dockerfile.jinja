@@ -2,7 +2,7 @@
 # BUILDER
 # Used to build deps + create our virtual environment using uv
 ################################
-FROM ghcr.io/astral-sh/uv:python3.14-bookworm-slim AS builder
+FROM ghcr.io/astral-sh/uv:python{{ python_version }}-bookworm-slim AS builder
 
 # Set uv environment variables for optimal Docker builds
 ENV UV_COMPILE_BYTECODE=1 \
@@ -33,7 +33,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # DEVELOPMENT
 # Image used during development / testing
 ################################
-FROM ghcr.io/astral-sh/uv:python3.14-bookworm-slim AS development
+FROM ghcr.io/astral-sh/uv:python{{ python_version }}-bookworm-slim AS development
 
 # Set uv environment variables
 ENV UV_COMPILE_BYTECODE=1 \
@@ -62,14 +62,14 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # Place executables in the environment at the front of the path
 ENV PATH="/app/.venv/bin:$PATH"
 
-CMD ["python", "-m", "copier_python_template.example"]
+CMD ["python", "-m", "{{ package_name }}.example"]
 
 
 ################################
 # PRODUCTION
 # Final image used for runtime without uv
 ################################
-FROM python:3.14-slim-bookworm AS production
+FROM python:{{ python_version }}-slim-bookworm AS production
 
 # Set Python environment variables
 ENV PYTHONUNBUFFERED=1 \
@@ -82,4 +82,4 @@ COPY --from=builder --chown=app:app /app /app
 ENV PATH="/app/.venv/bin:$PATH"
 
 WORKDIR /app
-CMD ["python", "-m", "copier_python_template.example"]
+CMD ["python", "-m", "{{ package_name }}.example"]

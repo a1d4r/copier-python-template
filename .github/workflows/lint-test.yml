@@ -52,6 +52,8 @@ jobs:
 
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # copier needs full git history for vcs_ref=HEAD
 
       - name: Set up Python
         id: setup-python
@@ -73,5 +75,5 @@ jobs:
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
         run: uv sync --locked --all-extras --dev
 
-      - name: Run tests
-        run: make test
+      - name: Run tests (excluding e2e)
+        run: uv run pytest -m "not e2e"

@@ -1,0 +1,40 @@
+name: E2E Template Tests
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  make-test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        install-pydantic: [true, false]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # copier needs full git history for vcs_ref=HEAD
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install dependencies
+        run: uv sync --locked --all-extras --dev
+
+      - name: Pull Docker image
+        run: docker pull ghcr.io/astral-sh/uv:python${{ matrix.python-version }}-bookworm-slim
+
+      - name: Run E2E test
+        run: >
+          uv run pytest
+          "tests/test_make.py::test_make_format_lint_test[${{ matrix.install-pydantic == true && 'True' || 'False' }}-${{ matrix.python-version }}]"
+          -v --timeout=300

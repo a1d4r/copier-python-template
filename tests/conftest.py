@@ -1,3 +1,5 @@
+import shutil
+
 from pathlib import Path
 
 import pytest
@@ -5,6 +7,12 @@ import pytest
 from copier import run_copy
 
 TEMPLATE_DIR = Path(__file__).parent.parent
+
+
+def check_tool(name: str) -> None:
+    """Skip test if CLI tool is not installed."""
+    if shutil.which(name) is None:
+        pytest.skip(f"{name} not found")
 
 
 def _generate_project(

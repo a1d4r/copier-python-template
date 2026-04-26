@@ -75,6 +75,9 @@ FROM python:{{ python_version }}-slim-bookworm AS production
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 
+# Create a non-root user to run the application
+RUN groupadd -r app && useradd -r -g app app
+
 # Copy the application from the builder
 COPY --from=builder --chown=app:app /app /app
 
@@ -82,4 +85,5 @@ COPY --from=builder --chown=app:app /app /app
 ENV PATH="/app/.venv/bin:$PATH"
 
 WORKDIR /app
+USER app
 CMD ["python", "-m", "{{ package_name }}.example"]

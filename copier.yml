@@ -64,3 +64,20 @@ _tasks:
   - "git init"
   - command: "uv sync"
     when: "{{ _copier_operation == 'copy' }}"
+
+# Migrations run only on `copier update` when the target version crosses
+# the threshold: new_version >= version > old_version.
+# - `_stage == "before"`: before update; use to migrate `.copier-answers.yml`
+#   (it is reloaded after this stage).
+# - `_stage == "after"`: after update + user-diff reapply; use for cleanup.
+# Add entries here when introducing breaking changes. See CONTRIBUTING.md.
+#
+# Example:
+# _migrations:
+#   - version: v0.2.0
+#     command: "sed -i 's/old_var:/new_var:/' {{ _copier_conf.answers_file }}"
+#     when: "{{ _stage == 'before' }}"
+#   - version: v0.2.0
+#     command: "rm -f legacy_file.txt"
+#     when: "{{ _stage == 'after' }}"
+_migrations: []

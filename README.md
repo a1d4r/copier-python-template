@@ -63,6 +63,10 @@ copier update --trust
 
 Copier will perform a 3-way merge, preserving your local changes while applying template updates.
 
+> **Versioning.** The template follows SemVer and is currently in pre-1.0 (`0.x.y`).
+> Until `v1.0.0`, minor bumps may include breaking changes; patches are backwards-compatible fixes.
+> `copier update` always targets the latest tag.
+
 ### Input variables
 
 Template generator will ask you to fill some variables.

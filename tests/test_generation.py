@@ -4,6 +4,10 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from copier import run_copy
+
+from tests.conftest import TEMPLATE_DIR
+
 if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
@@ -76,6 +80,27 @@ def test_package_name_substitution(default_project: Path) -> None:
 
     pyproject = (default_project / "pyproject.toml").read_text()
     assert 'source = ["test_project"]' in pyproject
+
+
+@pytest.mark.parametrize("bad_name", ["my-pkg", "1abc", "Abc", "ab!"])
+def test_package_name_validator_rejects_invalid(tmp_path: Path, bad_name: str) -> None:
+    with pytest.raises(ValueError, match="package_name"):
+        run_copy(
+            str(TEMPLATE_DIR),
+            str(tmp_path / "test-project"),
+            data={
+                "project_name": "test-project",
+                "package_name": bad_name,
+                "username": "testuser",
+                "python_version": "3.13",
+                "git_platform": "github",
+                "install_pydantic": True,
+                "line_length": 88,
+            },
+            defaults=True,
+            unsafe=True,
+            vcs_ref="HEAD",
+        )
 
 
 def test_line_length(default_project: Path) -> None:

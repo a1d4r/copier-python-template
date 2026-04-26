@@ -19,7 +19,7 @@ package_name:
   help: Python package name
   default: "{{ project_name | lower | replace(' ', '-') | replace('-', '_') }}"
   validator: >-
-    {% if not (package_name | regex_search('^[a-z][a-z0-9\\_\\-]+[a-z0-9]$')) %}
+    {% if not (package_name | regex_search('^[a-z][a-z0-9_]*$')) %}
     Must be a valid Python module name (lowercase, starts with letter).
     {% endif %}
 

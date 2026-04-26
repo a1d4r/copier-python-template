@@ -42,7 +42,7 @@ jobs:
         run: uv sync --locked --all-extras --dev
 
       - name: Pull Docker image
-        run: docker pull ghcr.io/astral-sh/uv:python${{ matrix.python-version }}-bookworm-slim
+        run: docker pull ghcr.io/astral-sh/uv:python${{ matrix.python-version }}-trixie-slim
 
       - name: Run E2E test
         run: >

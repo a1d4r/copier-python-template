@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
 
-DOCKER_IMAGE = "ghcr.io/astral-sh/uv:python{version}-bookworm-slim"
+DOCKER_IMAGE = "ghcr.io/astral-sh/uv:python{version}-trixie-slim"
 
 DOCKER_SETUP = (
     "apt-get update -qq && apt-get install -y -qq git make > /dev/null"

@@ -2,6 +2,8 @@
 
 from typing import TYPE_CHECKING
 
+import re
+
 import pytest
 
 from copier import run_copy
@@ -164,6 +166,36 @@ def test_common_files_exist(default_project: Path) -> None:
     assert (default_project / ".pre-commit-config.yaml").is_file()
     assert (default_project / "test_project" / "example.py").is_file()
     assert (default_project / "tests" / "test_example" / "test_hello.py").is_file()
+
+
+# --- Generated docs and editor config ---
+
+
+def test_readme_make_targets_exist(default_project: Path) -> None:
+    readme = (default_project / "README.md").read_text()
+    makefile = (default_project / "Makefile").read_text()
+
+    targets = set(re.findall(r"^([A-Za-z0-9_-]+):", makefile, flags=re.MULTILINE))
+    used = {
+        target
+        for args in re.findall(r"^make ([A-Za-z0-9_ -]+)$", readme, flags=re.MULTILINE)
+        for target in args.split()
+    }
+
+    assert used, "README does not mention any make targets"
+    assert used <= targets, f"README mentions unknown make targets: {sorted(used - targets)}"
+
+
+def test_readme_links_root_makefile(default_project: Path) -> None:
+    readme = (default_project / "README.md").read_text()
+
+    assert "[`Makefile`](Makefile)" in readme
+
+
+def test_editorconfig_python_section(default_project: Path) -> None:
+    editorconfig = (default_project / ".editorconfig").read_text()
+
+    assert "[*.{py,pyi}]" in editorconfig
 
 
 # --- All Python versions ---

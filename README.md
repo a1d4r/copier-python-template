@@ -132,7 +132,7 @@ Install requirements:
 make install
 ```
 
-Pre-commit hooks coulb be installed after `git init` via
+Pre-commit hooks can be installed after `git init` via
 
 ```bash
 make pre-commit-install
@@ -189,7 +189,7 @@ make check-safety
 Run `mypy` static type checker
 
 ```bash
-make mypy
+make check-mypy
 ```
 
 </p>

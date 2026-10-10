@@ -9,10 +9,11 @@ git clone {{ git_repo_url }}.git
 cd {{ project_name | lower | replace(' ', '-') }}
 ```
 
-2. If you don't have `uv` installed run:
+2. If you don't have `uv` installed, follow the
+   [official installation guide](https://docs.astral.sh/uv/getting-started/installation/) or run:
 
 ```bash
-make uv-download
+make uv-install
 ```
 
 3. Initialize uv and install `pre-commit` hooks:
@@ -22,7 +23,7 @@ make install
 make pre-commit-install
 ```
 
-4. Run formatters, linters, and tests. Make sure there is no errors.
+4. Run formatters, linters, and tests. Make sure there are no errors.
 
 ```bash
 make format lint test
@@ -30,7 +31,7 @@ make format lint test
 
 ### Makefile usage
 
-[`Makefile`]({{ project_name | lower | replace(' ', '-') }}/Makefile)
+[`Makefile`](Makefile)
 contains a lot of functions
 for faster development.
 
@@ -57,7 +58,7 @@ Install requirements:
 make install
 ```
 
-Pre-commit hooks coulb be installed after `git init` via
+Pre-commit hooks can be installed after `git init` via
 
 ```bash
 make pre-commit-install
@@ -114,7 +115,7 @@ make check-safety
 Run `mypy` static type checker
 
 ```bash
-make mypy
+make check-mypy
 ```
 
 </p>

@@ -40,10 +40,12 @@ and best development practices for Python.
 
 ### Installation
 
-To begin using the template, install `copier`:
+To begin using the template, install `copier` (version `9.15.0` or newer is required):
 
 ```bash
-pip install copier
+uv tool install copier
+# or
+pip install "copier>=9.15"
 ```
 
 then go to a directory where you want to create your project and run:

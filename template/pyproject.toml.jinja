@@ -6,6 +6,9 @@ dependencies = [
     "pydantic>=2.9.2",
 ]
 
+[project.scripts]
+{{ project_slug }} = "{{ package_name }}.__main__:main"
+
 [dependency-groups]
 dev = [
     "mypy>=1.15.0,<2",
@@ -22,8 +25,15 @@ dev = [
 {%- endif %}
 ]
 
-[tool.uv]
-package = false
+[build-system]
+# uv recommends an upper bound for uv_build (its own release cadence); bump it with uv.
+requires = ["uv_build>=0.13.0,<0.14"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+# Flat layout: the package lives in ./{{ package_name }}, not in ./src.
+module-name = "{{ package_name }}"
+module-root = ""
 
 [tool.mypy]
 # https://mypy.readthedocs.io/en/latest/config_file.html#using-a-pyproject-toml-file
@@ -93,6 +103,7 @@ output = "reports/coverage.xml"
 [tool.ruff]
 # https://docs.astral.sh/ruff/settings/#top-level
 line-length = {{ line_length }}
+target-version = "py{{ python_version | replace('.', '') }}"
 
 [tool.ruff.lint]
 # https://docs.astral.sh/ruff/settings/#lint

@@ -1,11 +1,12 @@
 """Tests that copier generates a valid project structure."""
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import os
 import re
 import subprocess
 import sys
+import tomllib
 
 from pathlib import Path
 
@@ -22,6 +23,11 @@ from tests.conftest import (
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+
+def _pyproject(project: Path) -> dict[str, Any]:
+    return tomllib.loads((project / "pyproject.toml").read_text())
+
 
 # --- Platform-specific structure ---
 
@@ -52,12 +58,22 @@ def test_pydantic_enabled(default_project: Path) -> None:
 
 def test_python_version_in_configs(generate_project: Callable[..., Path]) -> None:
     project = generate_project(python_version="3.12", git_platform="github", skip_tasks=True)
-    pyproject = (project / "pyproject.toml").read_text()
+    pyproject = _pyproject(project)
     workflow = (project / ".github" / "workflows" / "lint-test.yml").read_text()
 
-    assert 'requires-python = ">=3.12"' in pyproject
-    assert 'python_version = "3.12"' in pyproject
+    assert (project / ".python-version").read_text() == "3.12\n"
+    assert pyproject["project"]["requires-python"] == ">=3.12"
+    assert pyproject["tool"]["mypy"]["python_version"] == "3.12"
+    assert pyproject["tool"]["ruff"]["target-version"] == "py312"
     assert "3.12" in workflow
+
+
+def test_python_version_file_is_not_ignored(default_project: Path) -> None:
+    result = subprocess.run(
+        ["git", "check-ignore", "-q", ".python-version"], cwd=default_project, check=False
+    )
+
+    assert result.returncode == 1, ".python-version must be committed"
 
 
 def test_python_version_default_is_latest_choice(default_project: Path) -> None:
@@ -197,6 +213,8 @@ def test_common_files_exist(default_project: Path) -> None:
     assert (default_project / "Dockerfile").is_file()
     assert (default_project / "README.md").is_file()
     assert (default_project / ".pre-commit-config.yaml").is_file()
+    assert (default_project / ".python-version").is_file()
+    assert (default_project / "test_project" / "__main__.py").is_file()
     assert (default_project / "test_project" / "example.py").is_file()
     assert (default_project / "tests" / "test_example" / "test_hello.py").is_file()
 

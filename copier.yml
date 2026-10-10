@@ -15,6 +15,12 @@ _exclude:
   - .git
   - .DS_Store
 
+# Seed files: rendered on `copier copy` (or when missing), never overwritten
+# by `copier update`. Application code belongs to the project, the template
+# keeps updating only the tooling.
+_skip_if_exists:
+  - "{{ package_name }}/__main__.py"
+
 # Questions
 project_name:
   type: str

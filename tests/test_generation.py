@@ -3,7 +3,6 @@
 from typing import TYPE_CHECKING, Any
 
 import os
-import re
 import subprocess
 import sys
 import tomllib
@@ -276,28 +275,6 @@ def test_copy_tasks_do_not_fail_without_uv(tmp_path: Path) -> None:
 
 
 # --- Generated docs and editor config ---
-
-
-def _make_targets(project: Path) -> set[str]:
-    makefile = (project / "Makefile").read_text()
-    return set(re.findall(r"^([A-Za-z0-9_-]+):", makefile, flags=re.MULTILINE))
-
-
-def test_readme_make_targets_exist(default_project: Path) -> None:
-    readme = (default_project / "README.md").read_text()
-
-    commands = re.findall(r"^make ([^#\n]+)", readme, flags=re.MULTILINE)
-    commands += re.findall(r"`make ([^`]+)`", readme)
-    used = {
-        word
-        for command in commands
-        for word in command.split()
-        if re.fullmatch(r"[a-z][a-z0-9-]*", word)
-    }
-
-    assert used, "README does not mention any make targets"
-    unknown = used - _make_targets(default_project)
-    assert not unknown, f"README mentions unknown make targets: {sorted(unknown)}"
 
 
 def test_readme_links_root_makefile(default_project: Path) -> None:

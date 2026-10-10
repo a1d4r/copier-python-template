@@ -114,6 +114,15 @@ _tasks:
       echo "WARNING: uv not found; install it (https://docs.astral.sh/uv/) and run 'make install'." >&2;
       fi
     when: "{{ _copier_operation == 'copy' }}"
+  # The seed code is written for the default line length and a short package
+  # name; reformat it for the chosen `line_length` and `package_name`.
+  - command: >-
+      if command -v uv >/dev/null 2>&1 && [ -d .venv ]; then
+      { uv run --frozen --no-sync ruff check --fix-only --quiet
+      && uv run --frozen --no-sync ruff format --quiet; }
+      || echo "WARNING: formatting the generated code failed; run 'make format'." >&2;
+      fi
+    when: "{{ _copier_operation == 'copy' }}"
   # `copier update` only: refresh uv.lock after pyproject.toml changes.
   # During an update Copier renders the old and the new template versions
   # into temporary directories and runs this task there as well. That is

@@ -49,8 +49,9 @@ overwrites them on `copier update`. Keep `_skip_if_exists` and `SEED_FILES` in
 
 - A seed file deleted in a project comes back on the next update, so do not add empty placeholders.
 - Changes to seed files reach only new projects; describe them in the release notes instead.
-- Keep comments and docstrings within 50 columns, the smallest allowed `line_length`
-  (`W505` uses it as `max-doc-length`).
+- The copy task runs `ruff check --fix-only` and `ruff format`, so code adapts to `line_length` and
+  long package names, but ruff cannot rewrap comments and docstrings: keep them within 50 columns,
+  the smallest allowed `line_length` (`W505` uses it as `max-doc-length`).
 
 ## Migrations
 

@@ -169,3 +169,16 @@ def test_entry_point_logs_json(installed: Path) -> None:
 
     assert result.returncode == 0, result.stderr
     assert '"event": "application started"' in result.stdout
+
+
+def test_seed_code_is_formatted_for_answers(tmp_path: Path) -> None:
+    """The copy task reformats the seed code for `line_length` and long package names."""
+    if shutil.which("uv") is None:
+        pytest.skip("uv not found")
+    project = _generate_project(
+        tmp_path / "test-project", project_name="Payments Reconciliation Service", line_length=50
+    )
+
+    for command in (("ruff", "format", "--check"), ("ruff", "check"), ("mypy",)):
+        result = _run(project, "uv", "run", "--frozen", *command)
+        assert result.returncode == 0, result.stdout + result.stderr

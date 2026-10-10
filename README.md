@@ -99,7 +99,10 @@ read [the project README.md template](template/README.md.jinja) before.
 
 By running `make install`
 
-After you create a project, it will appear in your directory with `git init` and `uv sync` already executed.
+After you create a project, it will appear in your directory with `git init` (branch `main`) and
+`uv sync` already executed. These tasks never abort the generation: if `uv` is not installed, Copier prints a
+warning and you can run `make install` later. On `copier update` the template runs `uv lock` to refresh the
+lockfile; follow the instructions printed after the update to resolve conflicts.
 
 #### Initialize `pre-commit`
 

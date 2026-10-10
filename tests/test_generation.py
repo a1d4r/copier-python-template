@@ -2,16 +2,26 @@
 
 from typing import TYPE_CHECKING
 
+import os
 import re
+import subprocess
+import sys
+
+from pathlib import Path
 
 import pytest
 import yaml
 
-from tests.conftest import COPIER_CONFIG, PYTHON_VERSIONS, _generate_project
+from tests.conftest import (
+    BASE_DATA,
+    COPIER_CONFIG,
+    PYTHON_VERSIONS,
+    TEMPLATE_DIR,
+    _generate_project,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from pathlib import Path
 
 # --- Platform-specific structure ---
 
@@ -189,6 +199,59 @@ def test_common_files_exist(default_project: Path) -> None:
     assert (default_project / ".pre-commit-config.yaml").is_file()
     assert (default_project / "test_project" / "example.py").is_file()
     assert (default_project / "tests" / "test_example" / "test_hello.py").is_file()
+
+
+# --- Copier tasks ---
+
+
+def test_copy_tasks_init_repo_and_env(default_project: Path) -> None:
+    branch = subprocess.run(
+        ["git", "symbolic-ref", "--short", "HEAD"],
+        cwd=default_project,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    assert branch.stdout.strip() == "main"
+    assert (default_project / "uv.lock").is_file()
+    assert (default_project / ".venv").is_dir()
+
+
+def test_copy_tasks_do_not_fail_without_uv(tmp_path: Path) -> None:
+    # Copier runs tasks through plumbum, which snapshots the environment at import time,
+    # so run the CLI in a subprocess to really hide `uv` from PATH.
+    path = [
+        entry
+        for entry in os.environ.get("PATH", "").split(os.pathsep)
+        if entry and not (Path(entry) / "uv").exists()
+    ]
+    project = tmp_path / "test-project"
+    data = [f"--data={key}={value}" for key, value in BASE_DATA.items()]
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "copier",
+            "copy",
+            "--trust",
+            "--defaults",
+            "--vcs-ref=HEAD",
+            *data,
+            str(TEMPLATE_DIR),
+            str(project),
+        ],
+        capture_output=True,
+        text=True,
+        env={**os.environ, "PATH": os.pathsep.join(path)},
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "WARNING: uv not found" in result.stderr
+    assert (project / "pyproject.toml").is_file()
+    assert (project / ".git").is_dir()
+    assert not (project / "uv.lock").exists()
 
 
 # --- Generated docs and editor config ---

@@ -136,9 +136,6 @@ def test_package_name_substitution(default_project: Path) -> None:
     makefile = (default_project / "Makefile").read_text()
     assert "CODE = test_project tests" in makefile
 
-    conftest = (default_project / "tests" / "conftest.py").read_text()
-    assert "test_project" in conftest
-
     test_hello = (default_project / "tests" / "test_example" / "test_hello.py").read_text()
     assert "from test_project.example import hello" in test_hello
 
@@ -217,6 +214,7 @@ def test_common_files_exist(default_project: Path) -> None:
     assert (default_project / "test_project" / "__main__.py").is_file()
     assert (default_project / "test_project" / "example.py").is_file()
     assert (default_project / "tests" / "test_example" / "test_hello.py").is_file()
+    assert not (default_project / "tests" / "conftest.py").exists()
 
 
 # --- Copier tasks ---

@@ -24,6 +24,21 @@ Breaking changes additionally need an entry in `_migrations` of `copier.yml` (se
 
 Tagging can later be automated via release-please or git-cliff (tracked separately).
 
+## Tool versions in the template
+
+- Dependencies in `template/pyproject.toml.jinja` have **lower bounds only** (`>=`); the exact
+  versions live in the generated `uv.lock` and are upgraded by the project (`make update`, bots).
+  Raise the lower bounds rarely (at most once per minor release): every bump touches the same
+  lines that `uv add` and update bots change, so it conflicts on `copier update`.
+- The one exception is `uv_build>=X,<Y` in `[build-system]`: uv recommends an upper bound for its
+  build backend.
+- The uv version is mentioned in several places; bump them together:
+  `uv_build` in `template/pyproject.toml.jinja`, `pip install uv==...` in the GitLab CI template,
+  the `setup-uv` action in the GitHub workflow template and the uv images in `template/Dockerfile.jinja`.
+- `COPIER` in `template/Makefile.jinja` requires the same minimum version as `_min_copier_version`.
+- pre-commit runs ruff and mypy as `repo: local` hooks through `uv run`, so their versions come
+  from `uv.lock`. Only `pre-commit-hooks` has a pinned `rev`.
+
 ## Migrations
 
 Migrations run only on `copier update` when the target version crosses

@@ -131,4 +131,3 @@ Run `make` without arguments to list all targets.
 | `make clean` | Remove caches, reports and build artifacts |
 | `make template-check` | Check whether a newer template version is available |
 | `make template-update` | `copier update --conflict inline`, check for conflict markers, then `uv lock && uv sync` |
-

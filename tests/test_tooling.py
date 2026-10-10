@@ -8,6 +8,7 @@ import subprocess
 import tomllib
 
 import pytest
+import yaml
 
 from tests.conftest import _generate_project
 
@@ -163,3 +164,19 @@ def test_make_help_lists_targets(project: Path) -> None:
     output = re.sub(r"\x1b\[[0-9;]*m", "", result.stdout)
     listed = set(re.findall(r"^  ([a-z][a-z0-9-]*) ", output, flags=re.MULTILINE))
     assert listed >= MAKE_TARGETS
+
+
+# --- pre-commit ---
+
+
+def test_pre_commit_uses_locked_tools(project: Path) -> None:
+    config = yaml.safe_load((project / ".pre-commit-config.yaml").read_text())
+    hooks = {hook["id"]: hook for repo in config["repos"] for hook in repo["hooks"]}
+
+    for hook_id in ("ruff-check", "ruff-format", "mypy"):
+        assert hooks[hook_id]["entry"].startswith("uv run --frozen "), hook_id
+    assert hooks["uv-lock-check"]["entry"] == "uv lock --check"
+    assert "--assume-in-merge" in hooks["check-merge-conflict"]["args"]
+    assert all(
+        repo["repo"] != "https://github.com/astral-sh/ruff-pre-commit" for repo in config["repos"]
+    )

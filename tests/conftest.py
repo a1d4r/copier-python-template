@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING, Any
 
 import os
+import re
 import shutil
 import subprocess
 
@@ -23,6 +24,16 @@ def check_tool(name: str) -> None:
     """Skip test if CLI tool is not installed."""
     if shutil.which(name) is None:
         pytest.skip(f"{name} not found")
+
+
+UV_STAGE = re.compile(r"^FROM ghcr\.io/astral-sh/uv:(\d+\.\d+\.\d+) AS uv$", re.MULTILINE)
+
+
+def dockerfile_uv_version(project: Path) -> str:
+    """The uv version pinned in the generated Dockerfile (its single `FROM ... AS uv` stage)."""
+    found = UV_STAGE.findall((project / "Dockerfile").read_text())
+    assert len(found) == 1, "the Dockerfile must pin uv in exactly one `FROM ... AS uv` stage"
+    return str(found[0])
 
 
 def git_commit(project: Path) -> None:

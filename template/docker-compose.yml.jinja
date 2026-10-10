@@ -2,7 +2,13 @@ services:
   app:
     build:
       context: .
-      dockerfile: Dockerfile
+      # Local development: dev dependencies, editable install, live sources.
+      # The production image is built by `make docker-build` and in CI.
       target: development
+    # Run a tiny init as PID 1: forwards signals and reaps zombie processes.
+    init: true
+    env_file:
+      - path: .env
+        required: false
     volumes:
       - ./{{ package_name }}:/app/{{ package_name }}

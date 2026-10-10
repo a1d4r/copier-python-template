@@ -103,3 +103,25 @@ jobs:
 
       - name: Run gitlab-ci-local tests
         run: uv run pytest tests/test_gitlab_ci.py -v --timeout=600
+
+  docker-image-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install dependencies
+        run: uv sync --locked --all-extras --dev
+
+      - name: Build and run the production image
+        run: uv run pytest tests/test_docker.py -m e2e -v --timeout=600

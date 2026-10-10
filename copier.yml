@@ -18,13 +18,26 @@ _exclude:
 # Questions
 project_name:
   type: str
-  help: Project name
+  help: Human-readable project name
   default: "python-project"
+  validator: >-
+    {% if not project_name.strip() %}
+    Project name must not be empty.
+    {% endif %}
+
+project_slug:
+  type: str
+  help: Project slug (kebab-case), used as distribution, repository and directory name
+  default: "{{ project_name | lower | regex_replace('[^a-z0-9]+', '-') | trim('-') }}"
+  validator: >-
+    {% if not (project_slug | regex_search('^[a-z][a-z0-9]*(-[a-z0-9]+)*$')) %}
+    Must be kebab-case: lowercase letters, digits and single hyphens, starting with a letter.
+    {% endif %}
 
 package_name:
   type: str
   help: Python package name
-  default: "{{ project_name | lower | replace(' ', '-') | replace('-', '_') }}"
+  default: "{{ project_slug | replace('-', '_') }}"
   validator: >-
     {% if not (package_name | regex_search('^[a-z][a-z0-9_]*$')) %}
     Must be a valid Python module name (lowercase, starts with letter).
@@ -40,18 +53,22 @@ git_platform:
 
 username:
   type: str
-  help: Username on the git platform
+  help: Username or organization on the git platform
   default: "username"
 
 git_repo_url:
   type: str
   help: Git repository URL
-  default: "https://{{ git_platform }}.com/{{ username | lower }}/{{ project_name | lower | replace(' ', '-') }}"
+  default: "https://{{ git_platform }}.com/{{ username | lower }}/{{ project_slug }}"
 
 python_version:
   type: str
-  help: Minimum Python version
-  default: "3.9"
+  help: Python version the application runs on (Docker images, CI, type checking)
+  choices:
+    - "3.12"
+    - "3.13"
+    - "3.14"
+  default: "3.14"
 
 line_length:
   type: int
@@ -61,11 +78,6 @@ line_length:
     {% if line_length < 50 or line_length > 300 %}
     Line length must be between 50 and 300.
     {% endif %}
-
-install_pydantic:
-  type: bool
-  help: Include Pydantic as a dependency?
-  default: true
 
 _tasks:
   - "git init"

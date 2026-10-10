@@ -13,7 +13,7 @@ and best development practices for Python.
 
 ### Development features
 
-- Supports `Python 3.9 - 3.13`
+- Generated projects run on `Python 3.12`, `3.13` or `3.14` (default)
 - [`uv`](https://docs.astral.sh/uv/) as a package manager.
 - Automatic codestyle with [`ruff formatter`](https://docs.astral.sh/ruff/formatter/)
 - Linting with [`ruff`](https://github.com/astral-sh/ruff)
@@ -75,16 +75,16 @@ Template generator will ask you to fill some variables.
 
 The input variables, with their default values:
 
-|   **Parameter**    |                   **Default value**                    | **Description**                                                                                              |
-|:------------------:|:------------------------------------------------------:|--------------------------------------------------------------------------------------------------------------|
-|   `project_name`   |                    `python-project`                    | [Check the availability of possible name](http://ivantomic.com/projects/ospnc/) before creating the project. |
-|   `package_name`   |              based on the `project_name`               | Name of the python package with source code                                                                  |
-|   `git_platform`   |                        `github`                        | Git platform (GitHub/GitLab)                                                                                 |
-|     `username`     |                       `username`                       | User or organization name for Git platform                                                                   |
-|   `git_repo_url`   | based on `git_platform`, `project_name` and `username` | URL to the git repository                                                                                    |
-|  `python_version`  |                         `3.9`                          | Python version. One of `3.9`, `3.10`, `3.11`, `3.12`, `3.13`. It is used for builds, CI and formatters.      |
-|   `line_length`    |                           88                           | The max length per line. Must be between 50 and 300.                                                         |
-| `install_pydantic` |                          true                          | If `pydantic` with `mypy` plugin should be installed                                                         |
+| **Parameter**    | **Default value**                                      | **Description**                                                                                                              |
+|:----------------:|:------------------------------------------------------:|------------------------------------------------------------------------------------------------------------------------------|
+| `project_name`   | `python-project`                                       | Human-readable project name. [Check the availability of possible name](http://ivantomic.com/projects/ospnc/) before creating the project. |
+| `project_slug`   | based on the `project_name`                            | Kebab-case slug used as the distribution, repository and directory name (e.g. `My App!` → `my-app`).                         |
+| `package_name`   | based on the `project_slug`                            | Name of the Python package with source code (e.g. `my_app`).                                                                 |
+| `git_platform`   | `github`                                               | Git platform (GitHub/GitLab)                                                                                                 |
+| `username`       | `username`                                             | User or organization name for Git platform                                                                                   |
+| `git_repo_url`   | based on `git_platform`, `username` and `project_slug` | URL to the git repository                                                                                                    |
+| `python_version` | `3.14`                                                 | Python version the application runs on: one of `3.12`, `3.13`, `3.14`. Used for Docker images, CI and type checking.         |
+| `line_length`    | 88                                                     | The max length per line. Must be between 50 and 300.                                                                         |
 
 All input values will be saved in the `.copier-answers.yml` file so that you can update the project later.
 

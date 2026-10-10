@@ -4,7 +4,7 @@ import subprocess
 
 import pytest
 
-from tests.conftest import check_tool
+from tests.conftest import PYTHON_VERSIONS, check_tool
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -18,28 +18,16 @@ DOCKER_SETUP = (
 )
 
 
-# NOTE: test IDs follow pattern [version-pydantic].
+# NOTE: test IDs follow pattern [version] (choices of `python_version` in copier.yml).
 # CI workflow e2e.yml depends on these IDs — update both together.
-@pytest.mark.parametrize(
-    ("python_version", "install_pydantic"),
-    [
-        ("3.9", False),
-        ("3.10", False),
-        ("3.11", False),
-        ("3.12", False),
-        ("3.13", False),
-        ("3.13", True),
-    ],
-)
+@pytest.mark.parametrize("python_version", PYTHON_VERSIONS)
 @pytest.mark.e2e
 @pytest.mark.slow
 @pytest.mark.timeout(300)
-def test_make_format_lint_test(
-    generate_project: Callable[..., Path], python_version: str, *, install_pydantic: bool
-) -> None:
+def test_make_format_lint_test(generate_project: Callable[..., Path], python_version: str) -> None:
     check_tool("docker")
 
-    project = generate_project(python_version=python_version, install_pydantic=install_pydantic)
+    project = generate_project(python_version=python_version)
     image = DOCKER_IMAGE.format(version=python_version)
 
     result = subprocess.run(

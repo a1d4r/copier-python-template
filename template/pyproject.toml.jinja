@@ -1,14 +1,10 @@
 [project]
-name = "{{ project_name | lower | replace(' ', '-') }}"
+name = "{{ project_slug }}"
 version = "0.1.0"
 requires-python = ">={{ python_version }}"
-{%- if install_pydantic %}
 dependencies = [
     "pydantic>=2.9.2",
 ]
-{%- else %}
-dependencies = []
-{%- endif %}
 
 [dependency-groups]
 dev = [
@@ -39,9 +35,7 @@ show_error_codes = true
 show_error_context = true
 show_traceback = true
 color_output = true
-{%- if install_pydantic %}
 plugins = ["pydantic.mypy"]
-{% endif %}
 strict = true  # https://mypy.readthedocs.io/en/stable/existing_code.html#introduce-stricter-options
 ignore_missing_imports = true
 disallow_untyped_decorators = false
@@ -51,14 +45,14 @@ module = "tests.*"
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
 disallow_untyped_calls = false
-{% if install_pydantic %}
+
 [tool.pydantic-mypy]
 # https://pydantic-docs.helpmanual.io/mypy_plugin/#configuring-the-plugin
 init_forbid_extra = true
 init_typed = true
 warn_required_dynamic_aliases = true
 warn_untyped_fields = true
-{% endif %}
+
 [tool.pytest.ini_options]
 # https://docs.pytest.org/en/6.2.x/customize.html#pyproject-toml
 # https://docs.pytest.org/en/latest/reference/reference.html#ini-options-ref

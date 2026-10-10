@@ -21,7 +21,7 @@ def _run_act(project: Path, job: str) -> subprocess.CompletedProcess[bytes]:
             "-W",
             ".github/workflows/lint-test.yml",
             "-P",
-            "ubuntu-latest=catthehacker/ubuntu:act-22.04",
+            "ubuntu-latest=catthehacker/ubuntu:act-24.04",
             # Disable cache server: act caches .venv across runs with different tmp paths,
             # which breaks virtualenv binaries (e.g. deptry not found).
             "--no-cache-server",

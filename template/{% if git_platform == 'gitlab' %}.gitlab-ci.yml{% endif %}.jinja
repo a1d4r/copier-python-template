@@ -34,35 +34,24 @@ stages:
 
 # Quality jobs ----------------------
 
-check-dependencies:
+lint:
   <<: *quality
-  script: make check-dependencies
+  script: make lint
 
-check-codestyle:
+codequality:
   <<: *quality
-  script: make check-codestyle
-
-check-ruff:
-  <<: *quality
-  script: make check-ruff-gitlab
+  script: make codequality
   artifacts:
     reports:
-      codequality: ruff-report.json
+      codequality:
+        - reports/ruff-codequality.json
+        - reports/mypy-codequality.json
     when: always
     expire_in: 1 week
 
-check-mypy:
+audit:
   <<: *quality
-  script: make check-mypy-gitlab
-  artifacts:
-    reports:
-      codequality: mypy-report.json
-    when: always
-    expire_in: 1 week
-
-check-safety:
-  <<: *quality
-  script: make check-safety
+  script: make audit
   allow_failure: true
 
 # Tests jobs ------------------------

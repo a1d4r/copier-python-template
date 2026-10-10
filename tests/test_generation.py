@@ -131,16 +131,17 @@ def test_project_name_must_not_be_empty(tmp_path: Path) -> None:
 def test_package_name_substitution(default_project: Path) -> None:
     assert (default_project / "test_project").is_dir()
     assert (default_project / "test_project" / "__init__.py").is_file()
-    assert (default_project / "test_project" / "example.py").is_file()
+    assert (default_project / "test_project" / "__main__.py").is_file()
 
     makefile = (default_project / "Makefile").read_text()
-    assert "CODE = test_project tests" in makefile
+    assert "PACKAGE := test_project" in makefile
 
     test_hello = (default_project / "tests" / "test_example" / "test_hello.py").read_text()
     assert "from test_project.example import hello" in test_hello
 
-    pyproject = (default_project / "pyproject.toml").read_text()
-    assert 'source = ["test_project"]' in pyproject
+    pyproject = _pyproject(default_project)
+    assert pyproject["tool"]["coverage"]["run"]["source"] == ["test_project"]
+    assert pyproject["tool"]["mypy"]["files"] == ["test_project", "tests"]
 
 
 @pytest.mark.parametrize("bad_name", ["my-pkg", "1abc", "Abc", "ab!"])
@@ -162,17 +163,17 @@ def test_line_length(default_project: Path) -> None:
 def test_github_make_targets(github_project: Path) -> None:
     makefile = (github_project / "Makefile").read_text()
 
-    assert "check-ruff-github" in makefile
-    assert "check-ruff-gitlab" not in makefile
-    assert "check-mypy-gitlab" not in makefile
+    assert "codequality" not in makefile
 
 
 def test_gitlab_make_targets(gitlab_project: Path) -> None:
     makefile = (gitlab_project / "Makefile").read_text()
+    gitlab_ci = (gitlab_project / ".gitlab-ci.yml").read_text()
 
-    assert "check-ruff-gitlab" in makefile
-    assert "check-mypy-gitlab" in makefile
-    assert "check-ruff-github" not in makefile
+    assert "\ncodequality:" in makefile
+    assert "--output-format=gitlab" in makefile
+    assert "mypy-gitlab-code-quality" in makefile
+    assert "make codequality" in gitlab_ci
 
 
 def test_gitlab_dev_dependencies(gitlab_project: Path) -> None:
@@ -273,19 +274,26 @@ def test_copy_tasks_do_not_fail_without_uv(tmp_path: Path) -> None:
 # --- Generated docs and editor config ---
 
 
+def _make_targets(project: Path) -> set[str]:
+    makefile = (project / "Makefile").read_text()
+    return set(re.findall(r"^([A-Za-z0-9_-]+):", makefile, flags=re.MULTILINE))
+
+
 def test_readme_make_targets_exist(default_project: Path) -> None:
     readme = (default_project / "README.md").read_text()
-    makefile = (default_project / "Makefile").read_text()
 
-    targets = set(re.findall(r"^([A-Za-z0-9_-]+):", makefile, flags=re.MULTILINE))
+    commands = re.findall(r"^make ([^#\n]+)", readme, flags=re.MULTILINE)
+    commands += re.findall(r"`make ([^`]+)`", readme)
     used = {
-        target
-        for args in re.findall(r"^make ([A-Za-z0-9_ -]+)$", readme, flags=re.MULTILINE)
-        for target in args.split()
+        word
+        for command in commands
+        for word in command.split()
+        if re.fullmatch(r"[a-z][a-z0-9-]*", word)
     }
 
     assert used, "README does not mention any make targets"
-    assert used <= targets, f"README mentions unknown make targets: {sorted(used - targets)}"
+    unknown = used - _make_targets(default_project)
+    assert not unknown, f"README mentions unknown make targets: {sorted(unknown)}"
 
 
 def test_readme_links_root_makefile(default_project: Path) -> None:

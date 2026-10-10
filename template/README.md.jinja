@@ -2,21 +2,17 @@
 
 ## Installation
 
-1. Clone `git` repo:
+1. Install [`uv`](https://docs.astral.sh/uv/getting-started/installation/).
+   It also installs the Python version pinned in [`.python-version`](.python-version).
+
+2. Clone the repository:
 
 ```bash
 git clone {{ git_repo_url }}.git
 cd {{ project_slug }}
 ```
 
-2. If you don't have `uv` installed, follow the
-   [official installation guide](https://docs.astral.sh/uv/getting-started/installation/) or run:
-
-```bash
-make uv-install
-```
-
-3. Initialize uv and install `pre-commit` hooks:
+3. Install dependencies and `pre-commit` hooks:
 
 ```bash
 make install
@@ -29,149 +25,60 @@ make pre-commit-install
 make format lint test
 ```
 
-### Makefile usage
+## Usage
 
-[`Makefile`](Makefile)
-contains a lot of functions
-for faster development.
-
-<details>
-<summary>1. Download uv</summary>
-<p>
-
-To download and install uv run:
+Run the application locally:
 
 ```bash
-make uv-install
+make run
 ```
 
-</p>
-</details>
-
-<details>
-<summary>2. Install all dependencies and pre-commit hooks</summary>
-<p>
-
-Install requirements:
+or with Docker Compose:
 
 ```bash
-make install
+make up
 ```
 
-Pre-commit hooks can be installed after `git init` via
+## Development
+
+The [`Makefile`](Makefile) wraps the common `uv` commands.
+Run `make` without arguments to list all targets.
+
+| Command | What it does |
+|---|---|
+| `make install` | Create `.venv` and install the project with all dependency groups |
+| `make format` | Apply safe `ruff` fixes and format the code |
+| `make lint` | Check `uv.lock`, run `ruff`, `mypy` and `deptry` |
+| `make test` | Run `pytest` with coverage, reports go to `reports/` |
+| `make audit` | Check locked runtime dependencies with `pip-audit` |
+| `make update` | Upgrade all dependencies in `uv.lock` |
+| `make docker-build` | Build the production Docker image |
+| `make up` / `make down` | Start / stop Docker Compose services |
+| `make clean` | Remove caches, reports and build artifacts |
+
+Dev tools (`ruff`, `mypy`, `pytest`, ...) have only lower bounds in `pyproject.toml`;
+the exact versions are locked in `uv.lock`. `ruff` selects all rules, so upgrading it
+may report new violations: fix them or add the rule to `ignore`.
+
+The Python version comes from the template answers and is used in
+`.python-version`, `pyproject.toml`, CI and the `Dockerfile`.
+`uv python pin` changes it only locally; to change it everywhere run:
 
 ```bash
-make pre-commit-install
+make template-update COPIER_ARGS="--data python_version=3.13"
 ```
 
-</p>
-</details>
+## Template updates
 
-<details>
-<summary>3. Codestyle</summary>
-<p>
-
-Automatic formatting uses `ruff` formatter
+This project was generated with [`copier-python-template`](https://github.com/a1d4r/copier-python-template).
+To pull in template changes (on a clean git tree):
 
 ```bash
-make codestyle
-
-# or use synonym
-make format
+make template-check    # is a newer template version available?
+make template-update   # copier update, then uv lock && uv sync
 ```
 
-Codestyle checks only, without rewriting files:
-
-```bash
-make check-codestyle
-```
-
-Update all libraries to the latest version using one command
-
-```bash
-make update
-```
-
-</p>
-</details>
-
-<details>
-<summary>4. Code security</summary>
-<p>
-
-This command identifies security issues with `Safety`
-
-```bash
-make check-safety
-```
-
-</p>
-</details>
-
-<details>
-<summary>5. Type checks</summary>
-<p>
-
-Run `mypy` static type checker
-
-```bash
-make check-mypy
-```
-
-</p>
-</details>
-
-<details>
-<summary>6. Tests with coverage</summary>
-<p>
-
-Run `pytest`
-
-```bash
-make test
-```
-
-</p>
-</details>
-
-<details>
-<summary>7. All linters</summary>
-<p>
-
-Of course there is a command to ~~rule~~ run all linters in one:
-
-```bash
-make lint
-```
-
-</p>
-</details>
-
-<details>
-<summary>8. Docker</summary>
-<p>
-
-Run with docker compose
-
-```bash
-make docker-up
-```
-
-</p>
-</details>
-
-<details>
-<summary>9. Cleanup</summary>
-<p>
-Delete cache and build files:
-
-```bash
-make cleanup
-```
-
-</p>
-</details>
-
-## Credits
-
-This project was generated with [`copier-python-template`](https://github.com/a1d4r/copier-python-template)
+The template runs tasks (`uv lock`), so Copier asks you to trust it: pass
+`COPIER_ARGS=--trust` or add the template to `trust` in Copier's
+[settings file](https://copier.readthedocs.io/en/stable/settings/).
+Conflicts are written inline (`<<<<<<<` markers): resolve them, then run `uv lock && uv sync`.

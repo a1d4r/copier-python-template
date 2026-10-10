@@ -34,17 +34,10 @@ jobs:
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
         run: uv sync --locked --all-extras --dev
 
-      - name: Check dependencies
-        run: make check-dependencies
-
-      - name: Check codestyle
-        run: make check-codestyle
-
-      - name: ruff
-        run: make check-ruff-github
-
-      - name: mypy
-        run: make check-mypy
+      - name: Lint
+        run: make lint
+        env:
+          RUFF_OUTPUT_FORMAT: github
 
   test:
     runs-on: ubuntu-latest

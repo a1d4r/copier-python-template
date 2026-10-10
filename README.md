@@ -13,16 +13,19 @@ and best development practices for Python.
 
 ### Development features
 
-- Generated projects run on `Python 3.12`, `3.13` or `3.14` (default)
-- [`uv`](https://docs.astral.sh/uv/) as a package manager.
+- Generated projects run on `Python 3.12`, `3.13` or `3.14` (default), pinned in `.python-version`
+- [`uv`](https://docs.astral.sh/uv/) as a package manager; the app is packaged with `uv_build`
+  (flat layout) and exposes a console script and `python -m <package>`.
+- Dev dependencies in [PEP 735](https://peps.python.org/pep-0735/) groups (`lint`, `test`, `dev`)
+  with lower bounds only; exact versions live in `uv.lock`.
 - Automatic codestyle with [`ruff formatter`](https://docs.astral.sh/ruff/formatter/)
-- Linting with [`ruff`](https://github.com/astral-sh/ruff)
-- Type checks with [`mypy`](https://mypy.readthedocs.io), security checks
-  with [`safety`](https://github.com/pyupio/safety).
+- Linting with [`ruff`](https://github.com/astral-sh/ruff) (all rules selected)
+- Type checks with [`mypy`](https://mypy.readthedocs.io) in strict mode with the pydantic plugin.
+- Vulnerability checks of locked dependencies with [`pip-audit`](https://github.com/pypa/pip-audit).
 - Dependencies check with [`deptry`](https://deptry.com/)
 - Testing with [`pytest`](https://docs.pytest.org/en/latest/) and [`coverage`](https://github.com/nedbat/coveragepy).
-- Runtime type checking in tests with [`typeguard`](https://github.com/agronholm/typeguard).
-- Ready-to-use [`pre-commit`](https://pre-commit.com/) hooks with code-formatting.
+- Ready-to-use [`pre-commit`](https://pre-commit.com/) hooks: ruff and mypy run from `uv.lock`,
+  `uv lock --check`, and inline conflicts left by `copier update` are caught.
 - Ready-to-use [`.editorconfig`](template/.editorconfig), [`.dockerignore`](template/.dockerignore), and [`.gitignore`](template/.gitignore).
 
 ### Deployment features
@@ -110,143 +113,22 @@ By running `make pre-commit-install`. Git is already initialized by the template
 
 ### Makefile usage
 
-[`Makefile`](template/Makefile.jinja)
-contains a lot of functions
-for faster development.
+The generated [`Makefile`](template/Makefile.jinja) is a set of thin wrappers around `uv`.
+Run `make` without arguments to list all targets.
 
-<details>
-<summary>1. Download uv</summary>
-<p>
+| Command | What it does |
+|---|---|
+| `make install` | Create `.venv` and install the project with all dependency groups |
+| `make pre-commit-install` | Install git pre-commit hooks |
+| `make format` | Apply safe `ruff` fixes and format the code |
+| `make lint` | `uv lock --check`, `ruff format --check`, `ruff check`, `mypy`, `deptry` |
+| `make test` | `pytest` with coverage (`fail_under`), reports go to `reports/` |
+| `make audit` | `pip-audit` over `uv export --locked` (runtime dependencies) |
+| `make run` | Run the application (`python -m <package>`) |
+| `make update` | Upgrade all dependencies in `uv.lock` |
+| `make docker-build` | Build the production Docker image |
+| `make up` / `make down` | Start / stop Docker Compose services |
+| `make clean` | Remove caches, reports and build artifacts |
+| `make template-check` | Check whether a newer template version is available |
+| `make template-update` | `copier update --conflict inline`, check for conflict markers, then `uv lock && uv sync` |
 
-To download and install uv run:
-
-```bash
-make uv-install
-```
-
-</p>
-</details>
-
-<details>
-<summary>2. Install all dependencies and pre-commit hooks</summary>
-<p>
-
-Install requirements:
-
-```bash
-make install
-```
-
-Pre-commit hooks can be installed after `git init` via
-
-```bash
-make pre-commit-install
-```
-
-</p>
-</details>
-
-<details>
-<summary>3. Codestyle</summary>
-<p>
-
-Automatic formatting uses `ruff` formatter
-
-```bash
-make codestyle
-
-# or use synonym
-make format
-```
-
-Codestyle checks only, without rewriting files:
-
-```bash
-make check-codestyle
-```
-
-Update all libraries to the latest version using one command
-
-```bash
-make update
-```
-
-</p>
-</details>
-
-<details>
-<summary>4. Code security</summary>
-<p>
-
-This command identifies security issues with `Safety`
-
-```bash
-make check-safety
-```
-
-</p>
-</details>
-
-<details>
-<summary>5. Type checks</summary>
-<p>
-
-Run `mypy` static type checker
-
-```bash
-make check-mypy
-```
-
-</p>
-</details>
-
-<details>
-<summary>6. Tests with coverage</summary>
-<p>
-
-Run `pytest`
-
-```bash
-make test
-```
-
-</p>
-</details>
-
-<details>
-<summary>7. All linters</summary>
-<p>
-
-Of course there is a command to ~~rule~~ run all linters in one:
-
-```bash
-make lint
-```
-
-</p>
-</details>
-
-<details>
-<summary>8. Docker</summary>
-<p>
-
-Run with docker compose
-
-```bash
-make docker-up
-```
-
-</p>
-</details>
-
-<details>
-<summary>9. Cleanup</summary>
-<p>
-Delete cache and build files:
-
-```bash
-make cleanup
-```
-
-</p>
-</details>

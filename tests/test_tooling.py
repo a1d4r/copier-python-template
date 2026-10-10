@@ -3,6 +3,8 @@
 from typing import TYPE_CHECKING, Any
 
 import re
+import shutil
+import subprocess
 import tomllib
 
 import pytest
@@ -11,6 +13,24 @@ from tests.conftest import _generate_project
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+MAKE_TARGETS = {
+    "help",
+    "install",
+    "pre-commit-install",
+    "format",
+    "lint",
+    "test",
+    "audit",
+    "run",
+    "update",
+    "clean",
+    "docker-build",
+    "up",
+    "down",
+    "template-update",
+    "template-check",
+}
 
 
 @pytest.fixture(scope="module", params=["github", "gitlab"])
@@ -87,13 +107,14 @@ def test_dropped_dev_dependencies(pyproject: dict[str, Any], package: str) -> No
 # --- mypy, pytest, coverage, ruff ---
 
 
-def test_mypy_config(pyproject: dict[str, Any]) -> None:
+def test_mypy_config(project: Path, pyproject: dict[str, Any]) -> None:
     mypy = pyproject["tool"]["mypy"]
 
     assert mypy["strict"] is True
     assert "pydantic.mypy" in mypy["plugins"]
     assert "ignore_missing_imports" not in mypy
     assert "warn_untyped_fields" not in pyproject["tool"]["pydantic-mypy"]
+    assert "--install-types" not in (project / "Makefile").read_text()
 
 
 def test_pytest_config(pyproject: dict[str, Any]) -> None:
@@ -118,3 +139,27 @@ def test_ruff_survives_upgrades(pyproject: dict[str, Any]) -> None:
     assert lint["select"] == ["ALL"]
     assert "CPY" in lint["ignore"]
     assert "pydantic.validator" not in lint["pep8-naming"]["classmethod-decorators"]
+
+
+# --- Makefile ---
+
+
+def test_make_targets(project: Path) -> None:
+    makefile = (project / "Makefile").read_text()
+    targets = set(re.findall(r"^([a-z][a-z0-9-]*):", makefile, flags=re.MULTILINE))
+
+    assert targets >= MAKE_TARGETS
+    assert ".DEFAULT_GOAL := help" in makefile
+    assert "curl" not in makefile
+    assert "--trust" not in makefile.replace("COPIER_ARGS=--trust", "")
+
+
+def test_make_help_lists_targets(project: Path) -> None:
+    if shutil.which("make") is None:
+        pytest.skip("make not found")
+
+    result = subprocess.run(["make"], cwd=project, capture_output=True, text=True, check=True)
+
+    output = re.sub(r"\x1b\[[0-9;]*m", "", result.stdout)
+    listed = set(re.findall(r"^  ([a-z][a-z0-9-]*) ", output, flags=re.MULTILINE))
+    assert listed >= MAKE_TARGETS

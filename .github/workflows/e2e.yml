@@ -98,9 +98,6 @@ jobs:
       - name: Install gitlab-ci-local
         run: npm install -g gitlab-ci-local@4.70.1
 
-      - name: Pull Python image
-        run: docker pull python:3.14
-
       - name: Run gitlab-ci-local tests
         run: uv run pytest tests/test_gitlab_ci.py -v --timeout=600
 

@@ -1,0 +1,50 @@
+# https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependabot-options-reference
+version: 2
+
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      github-actions:
+        patterns: ["*"]
+
+  # uv.lock and the lower bounds in pyproject.toml.
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      # Dev tools (dependency groups) in one pull request.
+      dev-dependencies:
+        patterns:
+          - deptry
+          - mypy
+          - pre-commit
+          - pytest
+          - pytest-*
+          - ruff
+      runtime-dependencies:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  # Base images and the uv stage in Dockerfile.
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    ignore:
+      # The Python version is a template answer (.python-version, CI, mypy, ruff):
+      # change it with `make template-update COPIER_ARGS="--data python_version=X.Y"`.
+      - dependency-name: python
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+    groups:
+      docker:
+        patterns: ["*"]

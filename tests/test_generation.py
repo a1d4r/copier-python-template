@@ -34,6 +34,7 @@ def _pyproject(project: Path) -> dict[str, Any]:
 
 def test_github_structure(github_project: Path) -> None:
     assert (github_project / ".github" / "workflows" / "lint-test.yml").is_file()
+    assert (github_project / ".github" / "dependabot.yml").is_file()
     assert not (github_project / ".gitlab-ci.yml").exists()
 
 
@@ -59,13 +60,16 @@ def test_pydantic_enabled(default_project: Path) -> None:
 def test_python_version_in_configs(generate_project: Callable[..., Path]) -> None:
     project = generate_project(python_version="3.12", git_platform="github", skip_tasks=True)
     pyproject = _pyproject(project)
+    dockerfile = (project / "Dockerfile").read_text()
     workflow = (project / ".github" / "workflows" / "lint-test.yml").read_text()
 
     assert (project / ".python-version").read_text() == "3.12\n"
     assert pyproject["project"]["requires-python"] == ">=3.12"
     assert pyproject["tool"]["mypy"]["python_version"] == "3.12"
     assert pyproject["tool"]["ruff"]["target-version"] == "py312"
-    assert "3.12" in workflow
+    assert "FROM python:3.12-slim-trixie AS production" in dockerfile
+    # GitHub Actions take the version from .python-version (uv), not from the workflow.
+    assert "python-version:" not in workflow
 
 
 def test_python_version_file_is_not_ignored(default_project: Path) -> None:

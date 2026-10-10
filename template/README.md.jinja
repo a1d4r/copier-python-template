@@ -82,6 +82,55 @@ so with `LOG_FORMAT=json` every line is one JSON object with `timestamp`, `level
 `logger` and `event` keys. Bind request-scoped context with
 `structlog.contextvars.bind_contextvars(request_id=...)`.
 
+## Docker
+
+The [`Dockerfile`](Dockerfile) pins uv in its first (`uv`) stage and has three build stages:
+
+- `builder` installs the locked runtime dependencies and the project (as a regular,
+  non-editable package) into `/app/.venv` with `uv`;
+- `production` (`make docker-build`) copies only `/app/.venv` onto `python:{{ python_version }}-slim-trixie`,
+  runs as the non-root user `10001:10001` and logs JSON (`LOG_FORMAT=json`);
+- `development` (`make up`) has all dependency groups and an editable install;
+  `docker-compose.yml` mounts `{{ package_name }}/` into it and reads `.env` if it exists.
+
+[`.dockerignore`](.dockerignore) is an allowlist: only `pyproject.toml`, `uv.lock`,
+`.python-version` and `{{ package_name }}/` get into the build context.
+When the image needs another file or directory (e.g. `migrations/`), add a `!path` line there,
+otherwise it is silently missing from the image.
+
+## CI
+
+{%- if git_platform == 'github' %}
+
+[GitHub Actions](.github/workflows/lint-test.yml) run `make lint`, `make test` (coverage in the
+job summary), `make audit` and build the production image (without pushing it)
+for pull requests and pushes to `main`. The workflow only reads the repository
+(`permissions: contents: read`); actions are pinned to commit SHAs.
+
+[Dependabot](.github/dependabot.yml) opens weekly pull requests for GitHub Actions,
+`uv.lock` (dev tools grouped together) and the Docker base images.
+{%- else %}
+
+[GitLab CI](.gitlab-ci.yml) runs `make lint`, `make codequality`, `make test` (coverage,
+JUnit and Code Quality reports in merge requests), `make audit` and builds the production
+image (without pushing it) for merge requests, the default branch and tags. The jobs use
+the `ghcr.io/astral-sh/uv` image with Python {{ python_version }}; the image build needs a runner
+that allows Docker-in-Docker (privileged), like the GitLab.com instance runners.
+
+GitLab has no built-in dependency update bot: run `make update` and `make template-check`
+periodically, and add a weekly [pipeline schedule](https://docs.gitlab.com/ci/pipelines/schedules/)
+to re-run `audit` on the default branch.
+{%- endif %}
+
+`audit` does not block {{ 'pull' if git_platform == 'github' else 'merge' }} requests (a newly published
+vulnerability is not caused by the change under review), but it fails on the default branch.
+
+The uv version is pinned in two places, keep them in sync: the `uv` stage in the `Dockerfile`
+and `UV_VERSION` in the CI config.
+{%- if git_platform == 'github' %}
+Dependabot bumps only the `Dockerfile` line: update `UV_VERSION` in the same pull request.
+{%- endif %}
+
 ## Development
 
 The [`Makefile`](Makefile) wraps the common `uv` commands.

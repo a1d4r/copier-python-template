@@ -32,9 +32,14 @@ Tagging can later be automated via release-please or git-cliff (tracked separate
   lines that `uv add` and update bots change, so it conflicts on `copier update`.
 - The one exception is `uv_build>=X,<Y` in `[build-system]`: uv recommends an upper bound for its
   build backend.
-- The uv version is mentioned in several places; bump them together:
-  `uv_build` in `template/pyproject.toml.jinja`, `pip install uv==...` in the GitLab CI template,
-  the `setup-uv` action in the GitHub workflow template and the uv images in `template/Dockerfile.jinja`.
+- The uv version is pinned in the `uv` stage of `template/Dockerfile.jinja`
+  (`FROM ghcr.io/astral-sh/uv:X.Y.Z AS uv`, a literal line so that Dependabot can bump it) and in
+  `UV_VERSION` of both CI templates (GitHub `setup-uv`, GitLab image tag); a generated project has
+  two of them, the README asks to keep them in sync. Bump all three together and raise the
+  `uv_build` range in `template/pyproject.toml.jinja` when uv moves to a new minor version.
+- GitHub actions in the workflow template are pinned to commit SHAs with a `# vX.Y.Z` comment.
+  Resolve a tag with `git ls-remote https://github.com/OWNER/REPO refs/tags/vX.Y.Z` (for an
+  annotated tag use the `^{}` line) and check the result with `zizmor` and `actionlint`.
 - `COPIER` in `template/Makefile.jinja` requires the same minimum version as `_min_copier_version`.
 - pre-commit runs ruff and mypy as `repo: local` hooks through `uv run`, so their versions come
   from `uv.lock`. Only `pre-commit-hooks` has a pinned `rev`.

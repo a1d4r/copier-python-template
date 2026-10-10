@@ -42,18 +42,28 @@ never overwrites these files and keeps updating only the tooling
 - Testing with [`pytest`](https://docs.pytest.org/en/latest/) and [`coverage`](https://github.com/nedbat/coveragepy).
 - Ready-to-use [`pre-commit`](https://pre-commit.com/) hooks: ruff and mypy run from `uv.lock`,
   `uv lock --check`, and inline conflicts left by `copier update` are caught.
-- Ready-to-use [`.editorconfig`](template/.editorconfig), [`.dockerignore`](template/.dockerignore), and [`.gitignore`](template/.gitignore).
+- Ready-to-use [`.editorconfig`](template/.editorconfig), [`.dockerignore`](template/.dockerignore.jinja), and [`.gitignore`](template/.gitignore).
 
 ### Deployment features
 
-- `GitHub Actions` with linters and tests in
-  the [workflow](template/%7B%25%20if%20git_platform%20%3D%3D%20'github'%20%25%7D.github%7B%25%20endif%20%25%7D/workflows/lint-test.yml.jinja).
-- `GitLab CI` with linters and tests in
-  the [pipeline](template/%7B%25%20if%20git_platform%20%3D%3D%20'gitlab'%20%25%7D.gitlab-ci.yml%7B%25%20endif%20%25%7D.jinja).
+- `GitHub Actions` [workflow](template/%7B%25%20if%20git_platform%20%3D%3D%20'github'%20%25%7D.github%7B%25%20endif%20%25%7D/workflows/lint-test.yml.jinja):
+  `lint`, `test` (coverage in the job summary), `audit` and `docker-build` jobs,
+  read-only permissions, actions pinned to commit SHAs, `setup-uv` with cache;
+  [Dependabot](template/%7B%25%20if%20git_platform%20%3D%3D%20'github'%20%25%7D.github%7B%25%20endif%20%25%7D/dependabot.yml)
+  for GitHub Actions, `uv.lock` and Docker images.
+- `GitLab CI` [pipeline](template/%7B%25%20if%20git_platform%20%3D%3D%20'gitlab'%20%25%7D.gitlab-ci.yml%7B%25%20endif%20%25%7D.jinja)
+  on the `ghcr.io/astral-sh/uv` image: `lint`, `codequality`, `test` (coverage, JUnit and
+  Code Quality reports), `audit` and `docker-build` (Docker-in-Docker) jobs,
+  interruptible, for merge requests, the default branch and tags.
+- `audit` (`pip-audit`) does not block pull/merge requests and fails on the default branch.
 - Ready-to-use [`Makefile`](template/Makefile.jinja) with
   formatting, linting, and testing. More details in [Makefile usage](#makefile-usage).
-- [Dockerfile](template/Dockerfile.jinja) for your package.
-- [docker-compose.yml](template/docker-compose.yml.jinja) for local development in Docker.
+- Multi-stage [Dockerfile](template/Dockerfile.jinja): the production image contains only
+  Python and the virtual environment with the app installed as a package, runs as a non-root
+  user (`10001`) and logs JSON; the build context is limited by an allowlist
+  [`.dockerignore`](template/.dockerignore.jinja).
+- [docker-compose.yml](template/docker-compose.yml.jinja) for local development in Docker
+  (development stage, `init: true`, optional `.env`).
 
 ## How to use it
 

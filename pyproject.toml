@@ -90,6 +90,8 @@ output = "reports/coverage.xml"
 [tool.ruff]
 # https://docs.astral.sh/ruff/settings/#top-level
 line-length = 100
+# Rendered code is checked inside generated projects (tests/), with their own config.
+extend-exclude = ["template", "examples"]
 
 [tool.ruff.lint]
 # https://docs.astral.sh/ruff/settings/#lint

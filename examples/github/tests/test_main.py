@@ -1,0 +1,16 @@
+"""Tests for the application entry point."""
+
+import pytest
+
+from example_app.__main__ import main
+
+
+@pytest.mark.parametrize("log_format", ["console", "json"])
+def test_main_logs_startup(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], log_format: str
+) -> None:
+    monkeypatch.setenv("LOG_FORMAT", log_format)
+
+    main()
+
+    assert "application started" in capsys.readouterr().out

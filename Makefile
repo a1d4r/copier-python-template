@@ -34,6 +34,11 @@ format: codestyle
 test:
 	uv run pytest
 
+# Re-render examples/ after changing template/ (checked by tests/test_examples.py)
+.PHONY: examples
+examples:
+	uv run python -m tests.examples
+
 # Validate dependencies
 .PHONY: check-uv
 check-uv:

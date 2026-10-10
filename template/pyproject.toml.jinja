@@ -3,7 +3,9 @@ name = "{{ project_slug }}"
 version = "0.1.0"
 requires-python = ">={{ python_version }}"
 dependencies = [
-    "pydantic>=2.9.2",
+    "pydantic>=2.14.0",
+    "pydantic-settings>=2.15.0",
+    "structlog>=26.1.0",
 ]
 
 [project.scripts]
@@ -178,6 +180,8 @@ extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Path", "f
 [tool.ruff.lint.flake8-type-checking]
 # https://docs.astral.sh/ruff/settings/#lintflake8-type-checking
 exempt-modules = ["typing", "typing_extensions"]
+# Pydantic needs the annotations of its models at runtime.
+runtime-evaluated-base-classes = ["pydantic.BaseModel", "pydantic_settings.BaseSettings"]
 
 [tool.ruff.lint.isort]
 # https://docs.astral.sh/ruff/settings/#lintisort

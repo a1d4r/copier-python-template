@@ -39,6 +39,49 @@ or with Docker Compose:
 make up
 ```
 
+The entry point is [`{{ package_name }}/__main__.py`]({{ package_name }}/__main__.py):
+`python -m {{ package_name }}` and the `{{ project_slug }}` console script run `main()`.
+
+## Configuration
+
+Settings live in [`{{ package_name }}/config.py`]({{ package_name }}/config.py)
+(`Settings`, a [`pydantic-settings`](https://docs.pydantic.dev/latest/concepts/pydantic_settings/) model).
+Values are read from environment variables, then from the `.env` file in the working directory,
+then from the defaults. Variable names have no prefix and are case-insensitive;
+nested settings use `__` as a delimiter (`DB__URL` sets `settings.db.url`).
+
+For local development copy the example file (`.env` is git-ignored) and edit it:
+
+```bash
+cp .env.example .env
+```
+
+| Variable | Default | Description |
+|---|---|---|
+| `LOG_LEVEL` | `INFO` | Minimum log level: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL` |
+| `LOG_FORMAT` | `console` | `console` (human-readable) for development, `json` for production |
+
+Use `get_settings()` to access the settings; in tests set variables with
+`monkeypatch.setenv` (the fixtures in `tests/conftest.py` reset the cache between tests).
+
+## Logging
+
+[`{{ package_name }}/logging_config.py`]({{ package_name }}/logging_config.py) sets up
+[`structlog`](https://www.structlog.org/) on top of the standard `logging` module.
+`configure_logging()` is called in `main()`; logs go to stdout.
+
+```python
+import structlog
+
+logger = structlog.stdlib.get_logger(__name__)
+logger.info("user created", user_id=42)
+```
+
+Loggers of third-party libraries (`logging.getLogger(...)`) go through the same processors,
+so with `LOG_FORMAT=json` every line is one JSON object with `timestamp`, `level`,
+`logger` and `event` keys. Bind request-scoped context with
+`structlog.contextvars.bind_contextvars(request_id=...)`.
+
 ## Development
 
 The [`Makefile`](Makefile) wraps the common `uv` commands.

@@ -39,6 +39,19 @@ Tagging can later be automated via release-please or git-cliff (tracked separate
 - pre-commit runs ruff and mypy as `repo: local` hooks through `uv run`, so their versions come
   from `uv.lock`. Only `pre-commit-hooks` has a pinned `rev`.
 
+## Seed files (application code)
+
+The application code of a generated project (`__main__.py`, `config.py`, `logging_config.py`,
+their tests, `tests/conftest.py`, `README.md`, `.env.example`) belongs to the project. These files are
+listed in `_skip_if_exists` in `copier.yml`: Copier renders them on `copier copy` and never
+overwrites them on `copier update`. Keep `_skip_if_exists` and `SEED_FILES` in
+`tests/test_core.py` in sync.
+
+- A seed file deleted in a project comes back on the next update, so do not add empty placeholders.
+- Changes to seed files reach only new projects; describe them in the release notes instead.
+- Keep comments and docstrings within 50 columns, the smallest allowed `line_length`
+  (`W505` uses it as `max-doc-length`).
+
 ## Migrations
 
 Migrations run only on `copier update` when the target version crosses

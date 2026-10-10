@@ -11,6 +11,22 @@ copier copy --trust gh:a1d4r/copier-python-template your-project
 In this [Copier](https://copier.readthedocs.io/) template we combine state-of-the-art libraries
 and best development practices for Python.
 
+### Application core
+
+- Configuration with [`pydantic-settings`](https://docs.pydantic.dev/latest/concepts/pydantic_settings/):
+  `Settings` in `<package>/config.py`, read from environment variables and `.env`
+  (documented in `.env.example`).
+- Logging with [`structlog`](https://www.structlog.org/) on top of the standard `logging` module:
+  human-readable console output for development, JSON lines for production (`LOG_FORMAT=json`);
+  logs of third-party libraries use the same format.
+- Entry point `<package>/__main__.py` (`python -m <package>` and a console script) with tests
+  for the configuration, logging and entry point.
+
+The application code (`__main__.py`, `config.py`, `logging_config.py`, their tests,
+`tests/conftest.py`, `README.md` and `.env.example`) is generated once: `copier update`
+never overwrites these files and keeps updating only the tooling
+(`pyproject.toml` tool settings, CI, Docker, `Makefile`, pre-commit).
+
 ### Development features
 
 - Generated projects run on `Python 3.12`, `3.13` or `3.14` (default), pinned in `.python-version`

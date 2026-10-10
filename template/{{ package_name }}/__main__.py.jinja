@@ -1,12 +1,23 @@
 """Application entry point.
 
-Run it with ``python -m {{ package_name }}``
-or with the ``{{ project_slug }}`` console script.
+Run it with
+``python -m {{ package_name }}``
+or ``{{ project_slug }}`` (console script).
 """
+
+import structlog
+
+from {{ package_name }}.config import get_settings
+from {{ package_name }}.logging_config import configure_logging
+
+logger = structlog.stdlib.get_logger(__name__)
 
 
 def main() -> None:
     """Run the application."""
+    settings = get_settings()
+    configure_logging(level=settings.log_level, fmt=settings.log_format)
+    logger.info("application started", log_level=settings.log_level)
 
 
 if __name__ == "__main__":

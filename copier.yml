@@ -17,9 +17,20 @@ _exclude:
 
 # Seed files: rendered on `copier copy` (or when missing), never overwritten
 # by `copier update`. Application code belongs to the project, the template
-# keeps updating only the tooling.
+# keeps updating only the tooling. A deleted seed file is recreated on update,
+# so every file here must be useful on its own (no empty placeholders).
+# Patterns are rendered, so they may use answers.
 _skip_if_exists:
+  - README.md
+  - .env.example
   - "{{ package_name }}/__main__.py"
+  - "{{ package_name }}/config.py"
+  - "{{ package_name }}/logging_config.py"
+  # Tests of the seed modules above follow the user's changes to them.
+  - tests/conftest.py
+  - tests/test_config.py
+  - tests/test_logging.py
+  - tests/test_main.py
 
 # Questions
 project_name:

@@ -136,8 +136,8 @@ def test_package_name_substitution(default_project: Path) -> None:
     makefile = (default_project / "Makefile").read_text()
     assert "PACKAGE := test_project" in makefile
 
-    test_hello = (default_project / "tests" / "test_example" / "test_hello.py").read_text()
-    assert "from test_project.example import hello" in test_hello
+    test_main = (default_project / "tests" / "test_main.py").read_text()
+    assert "from test_project.__main__ import main" in test_main
 
     pyproject = _pyproject(default_project)
     assert pyproject["tool"]["coverage"]["run"]["source"] == ["test_project"]
@@ -213,9 +213,9 @@ def test_common_files_exist(default_project: Path) -> None:
     assert (default_project / ".pre-commit-config.yaml").is_file()
     assert (default_project / ".python-version").is_file()
     assert (default_project / "test_project" / "__main__.py").is_file()
-    assert (default_project / "test_project" / "example.py").is_file()
-    assert (default_project / "tests" / "test_example" / "test_hello.py").is_file()
-    assert not (default_project / "tests" / "conftest.py").exists()
+    assert (default_project / "test_project" / "config.py").is_file()
+    assert (default_project / "test_project" / "logging_config.py").is_file()
+    assert (default_project / ".env.example").is_file()
 
 
 # --- Copier tasks ---

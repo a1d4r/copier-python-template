@@ -45,7 +45,7 @@ never overwrites these files and keeps updating only the tooling
 - Unused and missing dependencies are found by [`deptry`](https://deptry.com/).
 - Vulnerability checks of the locked runtime dependencies with [`pip-audit`](https://github.com/pypa/pip-audit).
 - Testing with [`pytest`](https://docs.pytest.org/en/latest/) (strict mode, warnings are errors)
-  and coverage with `fail_under`.
+  and a coverage threshold in `make test` (partial runs are not checked against it).
 - Ready-to-use [`pre-commit`](https://pre-commit.com/) hooks: ruff and mypy run from `uv.lock`,
   `uv lock --check`, and inline conflicts left by `copier update` are caught.
 - Ready-to-use [`.editorconfig`](template/.editorconfig), [`.dockerignore`](template/.dockerignore.jinja), and [`.gitignore`](template/.gitignore).
@@ -137,7 +137,7 @@ When the template evolves, update the project on a clean git tree:
 
 ```bash
 make template-check    # is a newer template version available?
-make template-update   # copier update --conflict inline, then uv lock && uv sync
+make template-update COPIER_ARGS=--trust   # copier update --conflict inline, then uv lock && uv sync
 ```
 
 Copier performs a 3-way merge: template changes are applied, your local changes are kept,
@@ -161,7 +161,7 @@ If `uv.lock` has conflicts, do not edit it by hand: `git checkout HEAD -- uv.loc
   clone is updated from that clone, which is usually stale or missing on other machines.
   In that case, set `_src_path: gh:a1d4r/copier-python-template` in `.copier-answers.yml`
   and commit it before the update.
-- **Changing answers.** `make template-update COPIER_ARGS="--data python_version=3.13"`.
+- **Changing answers.** `make template-update COPIER_ARGS="--trust --data python_version=3.13"`.
 - **Versions.** `copier update` targets the latest release tag; read the
   [changelog](CHANGELOG.md) (especially *Upgrade notes*) before updating across a minor version.
 
@@ -184,7 +184,7 @@ Run `make` without arguments to list all targets.
 | `make pre-commit-install` | Install git pre-commit hooks |
 | `make format` | Apply safe `ruff` fixes and format the code |
 | `make lint` | `uv lock --check`, `ruff format --check`, `ruff check`, `mypy`, `deptry` |
-| `make test` | `pytest` with coverage (`fail_under`), reports go to `reports/` |
+| `make test` | `pytest` with coverage (`--cov-fail-under=$(COV_FAIL_UNDER)`, 80), reports go to `reports/` |
 | `make audit` | `pip-audit` over `uv export --locked` (runtime dependencies) |
 | `make run` | Run the application (`python -m <package>`) |
 | `make update` | Upgrade all dependencies in `uv.lock` |

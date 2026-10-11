@@ -53,7 +53,10 @@ def test_github_workflow_permissions(github: Path) -> None:
 
     assert workflow["permissions"] == {"contents": "read"}
     assert all("permissions" not in job for job in workflow["jobs"].values())
-    assert workflow["concurrency"]["cancel-in-progress"] is True
+    # Superseded pull request runs are cancelled, runs on the default branch are not.
+    assert workflow["concurrency"]["cancel-in-progress"] == (
+        "${{ github.event_name == 'pull_request' }}"
+    )
 
 
 def test_github_workflow_jobs(github: Path) -> None:

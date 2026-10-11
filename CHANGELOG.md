@@ -21,7 +21,7 @@ workers, databases) are planned for later releases.
     stdlib loggers in the same format;
   - `<package>/__main__.py` — `main()` for `python -m <package>` and the `<slug>` console script;
   - `.env.example` and tests for the settings, logging and entry point (`tests/conftest.py`
-    isolates them from the environment).
+    isolates them from the environment and the developer's `.env`).
 - `project_slug` question (kebab-case, derived from `project_name`): distribution, repository
   and directory name; `package_name` is derived from it.
 - Packaging with `uv_build` (flat layout, `module-root = ""`); `.python-version` is generated
@@ -53,17 +53,20 @@ workers, databases) are planned for later releases.
 - Copier tasks never fail the generation: `git init --initial-branch=main` (unless already inside
   a repository) and `uv sync` run only on `copier copy`, `uv lock` only on `copier update`.
 - mypy: no global `ignore_missing_imports`, configured `files`; pytest: native `[tool.pytest]`,
-  strict mode, warnings are errors; coverage `fail_under = 80` (`__main__.py` omitted); ruff ignores
+  strict mode, warnings are errors; `make test` requires 80% coverage (`COV_FAIL_UNDER`,
+  `__main__.py` omitted), a partial `pytest` run does not; ruff ignores
   rules that break a fresh project on upgrades (`CPY`, `DOC`, opinionated preview rules).
 - Makefile: thin `uv` wrappers; `lint` runs `uv lock --check`, `ruff format --check`,
   `ruff check`, `mypy` and `deptry`; `clean` replaces `cleanup` and no longer walks into `.venv`.
 - Dockerfile: uv pinned in one `FROM ghcr.io/astral-sh/uv:X.Y.Z AS uv` stage, Debian trixie,
   locked dependencies in a cached layer, the app installed non-editable; the production image
   contains only `.venv`, runs as `10001:10001` and logs JSON; `CMD ["python", "-m", "<package>"]`.
+  `main()` exits on `SIGTERM` (Python as PID 1 ignores it otherwise).
   The development stage keeps root for the bind mount.
 - `.dockerignore` is an allowlist (`pyproject.toml`, `uv.lock`, `.python-version`, the package).
 - `docker-compose.yml`: development stage, `init: true`, optional `.env`.
-- GitHub Actions: `permissions: contents: read`, concurrency, actions pinned to SHAs,
+- GitHub Actions: `permissions: contents: read`, concurrency (cancels superseded pull request
+  runs only), actions pinned to SHAs,
   `setup-uv` with cache instead of `setup-python` and a hand-made `.venv` cache, jobs call
   `make` targets.
 - GitLab CI: `ghcr.io/astral-sh/uv` image with a pinned `UV_VERSION` instead of

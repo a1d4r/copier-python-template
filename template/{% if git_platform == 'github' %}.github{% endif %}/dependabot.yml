@@ -42,7 +42,7 @@ updates:
       default-days: 7
     ignore:
       # The Python version is a template answer (.python-version, CI, mypy, ruff):
-      # change it with `make template-update COPIER_ARGS="--data python_version=X.Y"`.
+      # change it with `make template-update COPIER_ARGS="--trust --data python_version=X.Y"`.
       - dependency-name: python
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
     groups:

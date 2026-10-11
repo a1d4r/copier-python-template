@@ -90,6 +90,9 @@ The [`Dockerfile`](Dockerfile) pins uv in its first (`uv`) stage and has three b
   non-editable package) into `/app/.venv` with `uv`;
 - `production` (`make docker-build`) copies only `/app/.venv` onto `python:3.14-slim-trixie`,
   runs as the non-root user `10001:10001` and logs JSON (`LOG_FORMAT=json`);
+  the app is PID 1 there, which ignores `SIGTERM` (`docker stop`, Kubernetes) unless it sets a
+  handler: `main()` does, frameworks (uvicorn, aiogram) set their own; a process that runs
+  child processes needs an init (`docker run --init`, or `tini` as `ENTRYPOINT`);
 - `development` (`make up`) has all dependency groups and an editable install;
   `docker-compose.yml` mounts `example_app/` into it and reads `.env` if it exists.
 
@@ -126,7 +129,7 @@ Run `make` without arguments to list all targets.
 | `make install` | Create `.venv` and install the project with all dependency groups |
 | `make format` | Apply safe `ruff` fixes and format the code |
 | `make lint` | Check `uv.lock`, run `ruff`, `mypy` and `deptry` |
-| `make test` | Run `pytest` with coverage, reports go to `reports/` |
+| `make test` | Run `pytest` with coverage (fails below `COV_FAIL_UNDER`, 80%), reports go to `reports/` |
 | `make audit` | Check locked runtime dependencies with `pip-audit` |
 | `make update` | Upgrade all dependencies in `uv.lock` |
 | `make docker-build` | Build the production Docker image |
@@ -142,7 +145,7 @@ The Python version comes from the template answers and is used in
 `uv python pin` changes it only locally; to change it everywhere run:
 
 ```bash
-make template-update COPIER_ARGS="--data python_version=3.13"
+make template-update COPIER_ARGS="--trust --data python_version=3.13"
 ```
 
 ## Template updates
@@ -152,10 +155,10 @@ To pull in template changes (on a clean git tree):
 
 ```bash
 make template-check    # is a newer template version available?
-make template-update   # copier update, then uv lock && uv sync
+make template-update COPIER_ARGS=--trust   # copier update, then uv lock && uv sync
 ```
 
-The template runs tasks (`uv lock`), so Copier asks you to trust it: pass
-`COPIER_ARGS=--trust` or add the template to `trust` in Copier's
+The template runs tasks (`uv lock`), so Copier refuses to update without `--trust`.
+To drop the flag, add the template to `trust` in Copier's
 [settings file](https://copier.readthedocs.io/en/stable/settings/).
 Conflicts are written inline (`<<<<<<<` markers): resolve them, then run `uv lock && uv sync`.

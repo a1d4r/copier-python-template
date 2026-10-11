@@ -1,133 +1,51 @@
-#* Variables
+# Development of the template itself (generated projects get template/Makefile.jinja).
 SHELL := /usr/bin/env bash -o pipefail
-PYTHON := python3
+.DEFAULT_GOAL := help
 
-#* Directories with source code
-CODE = tests
-TESTS = tests
+# Python code of this repository (template/ and examples/ are checked in generated projects).
+CODE := tests
 
-#* uv package manager
-.PHONY: uv-install
-uv-install:
-	curl -LsSf https://astral.sh/uv/install.sh | sh
+.PHONY: help
+help: ## Show this help
+	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z0-9_-]+:.*## / {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-#* Installation
 .PHONY: install
-install:
+install: ## Create .venv with the dev dependencies
 	uv sync
 
 .PHONY: pre-commit-install
-pre-commit-install:
+pre-commit-install: ## Install git pre-commit hooks
 	uv run pre-commit install
 
-#* Formatters
-.PHONY: codestyle
-codestyle:
-	uv run ruff format $(CODE)
-	uv run ruff check $(CODE) --fix-only
-
 .PHONY: format
-format: codestyle
-
-#* Test
-.PHONY: test
-test:
-	uv run pytest
-
-# Re-render examples/ after changing template/ (checked by tests/test_examples.py)
-.PHONY: examples
-examples:
-	uv run python -m tests.examples
-
-# Validate dependencies
-.PHONY: check-uv
-check-uv:
-	uv lock --check
-
-.PHONY: check-dependencies
-check-dependencies: check-uv
-
-#* Static linters
-
-.PHONY: check-ruff
-check-ruff:
-	uv run ruff check $(CODE) --no-fix
-
-.PHONY: check-codestyle
-check-codestyle:
-	uv run ruff format $(CODE) --check
-
-
-.PHONY: check-ruff-github
-check-ruff-github:
-	uv run ruff check $(CODE) --no-fix --output-format=github
-
-
-.PHONY: check-mypy
-check-mypy:
-	uv run mypy --install-types --non-interactive --config-file pyproject.toml $(CODE)
-
-.PHONY: static-lint
-static-lint: check-ruff check-mypy
-
-#* Check safety
-
-.PHONY: check-safety
-check-safety:
-	uv run safety check --full-report
+format: ## Apply safe ruff fixes and format the code
+	uv run ruff check --fix-only $(CODE)
+	uv run ruff format $(CODE)
 
 .PHONY: lint
-lint: check-dependencies check-codestyle static-lint
+lint: ## uv lock --check, ruff format --check, ruff check, mypy
+	uv lock --check
+	uv run ruff format --check $(CODE)
+	uv run ruff check --no-fix $(CODE)
+	uv run mypy $(CODE)
 
-# Currently not supported in uv: https://github.com/astral-sh/uv/issues/6794
-#.PHONY: update-dev-deps
-#update-dev-deps:
-#	poetry add -G dev mypy@latest pre-commit@latest pytest@latest deptry@latest \
-#										coverage@latest safety@latest typeguard@latest ruff@latest
+.PHONY: test
+test: ## Template tests without Docker (render matrix, update, generated projects)
+	uv run pytest -m "not e2e"
+
+.PHONY: test-e2e
+test-e2e: ## End-to-end tests (Docker; act and gitlab-ci-local when installed)
+	uv run pytest -m e2e
+
+.PHONY: examples
+examples: ## Re-render examples/ after changing template/ (checked by tests/test_examples.py)
+	uv run python -m tests.examples
 
 .PHONY: update
-update:
+update: ## Upgrade the dev dependencies in uv.lock
 	uv lock --upgrade
 
-# Docker compose
-
-.PHONY: docker-up
-docker-up:
-	docker compose up
-
-#* Cleaning
-.PHONY: pycache-remove
-pycache-remove:
-	find . | grep -E "(__pycache__|\.pyc|\.pyo$$)" | xargs rm -rf || true
-
-.PHONY: dsstore-remove
-dsstore-remove:
-	find . | grep -E ".DS_Store" | xargs rm -rf || true
-
-.PHONY: mypycache-remove
-mypycache-remove:
-	find . | grep -E ".mypy_cache" | xargs rm -rf || true
-
-.PHONY: ipynbcheckpoints-remove
-ipynbcheckpoints-remove:
-	find . | grep -E ".ipynb_checkpoints" | xargs rm -rf || true
-
-.PHONY: pytestcache-remove
-pytestcache-remove:
-	find . | grep -E ".pytest_cache" | xargs rm -rf || true
-
-.PHONY: ruffcache-remove
-ruffcache-remove:
-	find . | grep -E ".ruff_cache" | xargs rm -rf || true
-
-.PHONY: build-remove
-build-remove:
-	rm -rf build/
-
-.PHONY: reports-remove
-reports-remove:
-	rm -rf reports/
-
-.PHONY: cleanup
-cleanup: pycache-remove dsstore-remove mypycache-remove ruffcache-remove \
-ipynbcheckpoints-remove pytestcache-remove reports-remove
+.PHONY: clean
+clean: ## Remove caches and reports
+	rm -rf reports .mypy_cache .pytest_cache .ruff_cache
+	find . -path ./.venv -prune -o -name __pycache__ -type d -exec rm -rf {} +

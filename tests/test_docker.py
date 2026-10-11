@@ -125,3 +125,4 @@ def test_docker_production_image_runs(github_project: Path) -> None:
     )
     assert run.returncode == 0, run.stdout + run.stderr
     assert '"event": "application started"' in run.stdout
+    assert '"logger": "test_project"' in run.stdout

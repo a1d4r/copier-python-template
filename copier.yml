@@ -163,7 +163,9 @@ _message_after_update: |
 # - `_stage == "before"`: before update; use to migrate `.copier-answers.yml`
 #   (it is reloaded after this stage).
 # - `_stage == "after"`: after update + user-diff reapply; use for cleanup.
-# Add entries here when introducing breaking changes. See CONTRIBUTING.md.
+# A last resort: any applicable migration makes `copier update` unsafe
+# (needs --trust). Removed questions need none, Copier drops their answers.
+# See "Answers and migrations" in CONTRIBUTING.md.
 # Keep commands portable (no GNU-only flags such as `sed -i`).
 #
 # Example:

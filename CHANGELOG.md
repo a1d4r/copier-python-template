@@ -5,7 +5,9 @@ All notable changes to the template are documented here. The format is based on
 [SemVer](https://semver.org/) (pre-1.0: a minor release may require manual steps, see
 *Upgrade notes*).
 
-## [Unreleased] — v0.2.0
+## [Unreleased]
+
+## [v0.2.0] — 2026-10-11
 
 The template is now a base for Python **applications**: a typed application core, uv packaging
 and tooling that `copier update` keeps up to date. Framework-specific modules (web, bots,
@@ -138,5 +140,6 @@ From `v0.1.0`, on a clean git tree:
 
 First tagged release.
 
-[Unreleased]: https://github.com/a1d4r/copier-python-template/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/a1d4r/copier-python-template/compare/v0.2.0...HEAD
+[v0.2.0]: https://github.com/a1d4r/copier-python-template/compare/v0.1.0...v0.2.0
 [v0.1.0]: https://github.com/a1d4r/copier-python-template/releases/tag/v0.1.0

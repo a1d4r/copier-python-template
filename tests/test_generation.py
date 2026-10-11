@@ -160,6 +160,18 @@ def test_line_length(default_project: Path) -> None:
     assert "max-doc-length = 88" in pyproject
 
 
+def test_line_length_validator_accepts_minimum(generate_project: Callable[..., Path]) -> None:
+    project = generate_project(line_length=79, skip_tasks=True)
+
+    assert _pyproject(project)["tool"]["ruff"]["line-length"] == 79
+
+
+@pytest.mark.parametrize("bad_length", [50, 78, 301])
+def test_line_length_validator_rejects_out_of_range(tmp_path: Path, bad_length: int) -> None:
+    with pytest.raises(ValueError, match="line_length"):
+        _generate_project(tmp_path / "test-project", line_length=bad_length)
+
+
 # --- Platform-specific make targets ---
 
 

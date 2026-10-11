@@ -106,7 +106,7 @@ Copier asks for the following values (defaults in brackets are computed from ear
 | `username`       | `username`                                             | User or organization name on the git platform.                                                                               |
 | `git_repo_url`   | based on `git_platform`, `username` and `project_slug` | URL of the git repository.                                                                                                   |
 | `python_version` | `3.14`                                                 | Python version the application runs on: one of `3.12`, `3.13`, `3.14`. Used in `.python-version`, Docker images, CI and type checking. |
-| `line_length`    | `88`                                                   | The max length per line. Must be between 50 and 300.                                                                         |
+| `line_length`    | `88`                                                   | Max length of code lines, comments and docstrings (ruff `line-length` and `max-doc-length`). Must be between 79 and 300.      |
 
 All answers are saved in `.copier-answers.yml` so that `copier update` can replay them.
 Pass answers non-interactively with `--data key=value` (or `--defaults` to accept all defaults).

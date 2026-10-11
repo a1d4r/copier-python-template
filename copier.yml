@@ -89,11 +89,11 @@ python_version:
 
 line_length:
   type: int
-  help: Max line length for ruff (50-300)
+  help: Max line length for code, comments and docstrings (79-300)
   default: 88
   validator: >-
-    {% if line_length < 50 or line_length > 300 %}
-    Line length must be between 50 and 300.
+    {% if line_length < 79 or line_length > 300 %}
+    Line length must be between 79 and 300.
     {% endif %}
 
 # Tasks run inside the destination with the system shell. They must never

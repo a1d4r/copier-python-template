@@ -34,7 +34,7 @@ def test_env_file(tmp_path: Path) -> None:
     env_file = tmp_path / ".env"
     env_file.write_text("LOG_LEVEL=WARNING\nUNKNOWN=1\n")
 
-    # conftest.py turns .env off: pass it.
+    # conftest.py turns .env off, so pass the file explicitly.
     assert Settings(_env_file=env_file).log_level == "WARNING"
 
 

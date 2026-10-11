@@ -28,7 +28,7 @@ COMBINATIONS: dict[str, dict[str, Any]] = {
         "git_platform": "gitlab",
         "python_version": "3.12",
         "project_name": "Payments-Reconciliation Service v2",
-        "line_length": 50,
+        "line_length": 79,
     },
     "github-py313-custom-names": {
         "python_version": "3.13",

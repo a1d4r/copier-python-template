@@ -1,4 +1,4 @@
-"""Fixtures that isolate tests from app state."""
+"""Fixtures that isolate tests from the environment and application state."""
 
 from __future__ import annotations
 
@@ -18,8 +18,8 @@ if TYPE_CHECKING:
 
 @pytest.fixture(autouse=True)
 def isolate_settings(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
-    """Hide env vars and .env, reset settings."""
-    # Case-insensitive; DB__URL sets field `db`.
+    """Hide settings variables and ``.env``, reset cached settings."""
+    # Names are case-insensitive, and DB__URL sets the nested field `db`.
     for name in list(os.environ):
         if name.lower().partition("__")[0] in Settings.model_fields:
             monkeypatch.delenv(name)
@@ -31,7 +31,7 @@ def isolate_settings(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
 
 @pytest.fixture(autouse=True)
 def isolate_logging() -> Iterator[None]:
-    """Undo ``configure_logging``."""
+    """Undo the changes made by ``configure_logging``."""
     root = logging.getLogger()
     handlers, level = root.handlers[:], root.level
     yield

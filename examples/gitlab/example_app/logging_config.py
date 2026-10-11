@@ -1,12 +1,9 @@
 """Logging: structlog on top of ``logging``.
 
-structlog loggers and stdlib loggers of
-third-party libraries share one handler and
-one set of processors, so all lines look the
-same: human-readable (``console``) for
-development or one JSON object per line
-(``json``) for log collectors. Logs go to
-stdout.
+structlog loggers and stdlib loggers of third-party libraries share one
+handler and one set of processors, so all lines look the same: human-readable
+(``console``) for development or one JSON object per line (``json``) for log
+collectors. Logs go to stdout.
 
 Usage::
 
@@ -28,7 +25,7 @@ type LogFormat = Literal["console", "json"]
 
 _HANDLER_NAME = __name__
 
-# Run for structlog events and stdlib records.
+# Processors that run for both structlog events and stdlib records.
 SHARED_PROCESSORS: list[structlog.typing.Processor] = [
     structlog.contextvars.merge_contextvars,
     structlog.stdlib.add_log_level,
@@ -45,14 +42,14 @@ def _renderers(fmt: LogFormat) -> list[structlog.typing.Processor]:
             structlog.processors.format_exc_info,
             structlog.processors.JSONRenderer(),
         ]
-    # Renders exceptions by itself.
+    # ConsoleRenderer formats exceptions by itself.
     return [structlog.dev.ConsoleRenderer(colors=sys.stdout.isatty())]
 
 
 def configure_logging(level: LogLevel = "INFO", fmt: LogFormat = "console") -> None:
     """Configure structlog and the root logger.
 
-    Safe to call again: replaces its handler.
+    Safe to call again: the handler installed by a previous call is replaced.
     """
     structlog.configure(
         processors=[
@@ -83,5 +80,4 @@ def configure_logging(level: LogLevel = "INFO", fmt: LogFormat = "console") -> N
         old.close()
     root.addHandler(handler)
     root.setLevel(level)
-    # Quiet noisy libraries here, for example
-    # set the "httpx" logger to WARNING.
+    # Quiet noisy libraries here, e.g. set the "httpx" logger to WARNING.

@@ -1,9 +1,7 @@
 """Application entry point.
 
-Run it with
-``python -m example_app``
-or with the console script
-``example-app``.
+Run it with ``python -m example_app`` or with the
+console script ``example-app``.
 """
 
 from __future__ import annotations
@@ -31,10 +29,9 @@ def _exit_on_sigterm(signum: int, _frame: FrameType | None) -> None:
 
 def main() -> None:
     """Run the application."""
-    # In a container the app is PID 1: without
-    # a handler it ignores SIGTERM, and
-    # `docker stop` kills it after a timeout.
-    # Frameworks (uvicorn, aiogram) set theirs.
+    # In a container the app is PID 1: without a handler it ignores SIGTERM,
+    # and `docker stop` kills it after a timeout. Frameworks (uvicorn, aiogram)
+    # install their own handlers.
     signal.signal(signal.SIGTERM, _exit_on_sigterm)
     settings = get_settings()
     configure_logging(level=settings.log_level, fmt=settings.log_format)

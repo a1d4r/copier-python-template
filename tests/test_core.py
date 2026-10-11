@@ -193,7 +193,7 @@ def test_seed_code_is_formatted_for_answers(tmp_path: Path) -> None:
     if shutil.which("uv") is None:
         pytest.skip("uv not found")
     project = _generate_project(
-        tmp_path / "test-project", project_name="Payments Reconciliation Service", line_length=50
+        tmp_path / "test-project", project_name="Payments Reconciliation Service", line_length=79
     )
 
     for command in (("ruff", "format", "--check"), ("ruff", "check"), ("mypy",)):

@@ -50,6 +50,9 @@ workers, databases) are planned for later releases.
 - `python_version` is the runtime version and one of `3.12`, `3.13`, `3.14` (default `3.14`);
   it drives `.python-version`, Docker images, CI, ruff `target-version` and mypy.
 - `project_name` must not be empty; `package_name` rejects hyphens and allows short names.
+- `line_length` must be between 79 and 300 (was 50–300). The seed code keeps comments and
+  docstrings within 79 columns, so they read naturally at the default 88 and stay lint-clean
+  (`W505` uses `line_length` as `max-doc-length`) for every allowed answer.
 - Copier tasks never fail the generation: `git init --initial-branch=main` (unless already inside
   a repository) and `uv sync` run only on `copier copy`, `uv lock` only on `copier update`.
 - mypy: no global `ignore_missing_imports`, configured `files`; pytest: native `[tool.pytest]`,
@@ -104,12 +107,14 @@ From `v0.1.0`, on a clean git tree:
    An interactive update asks again; with `--defaults` the default `3.14` is used silently.
    Pass the version explicitly, e.g. `--data python_version=3.12`. It is now the runtime version (Docker, CI, `.python-version`),
    not a minimum.
-3. **Answers**: `install_pydantic` is dropped from `.copier-answers.yml` automatically.
+3. **`line_length`**: values below `79` (allowed by `v0.1.0`) are no longer valid; pass
+   `--data line_length=79` (or more) to the update.
+4. **Answers**: `install_pydantic` is dropped from `.copier-answers.yml` automatically.
    The new `project_slug` collapses every run of characters other than letters and digits into
    `-`, while `v0.1.0` only replaced spaces, so `[project] name` may change for a `project_name`
    with punctuation (`_` vs `-` is the same distribution name after normalization). Override it
    with `--data project_slug=<kebab-case name>` if needed.
-4. **Seed files are not updated.** `README.md` and `tests/conftest.py` already existed in
+5. **Seed files are not updated.** `README.md` and `tests/conftest.py` already existed in
    `v0.1.0`, so `copier update` keeps the old versions:
    - the old `tests/conftest.py` imports `typeguard`, which is no longer installed — replace it
      with the new one (render a fresh project with the same answers, or take it from
@@ -118,16 +123,16 @@ From `v0.1.0`, on a clean git tree:
      [`examples/github/README.md`](examples/github/README.md).
    The new seed files (`config.py`, `logging_config.py`, `__main__.py`, their tests,
    `.env.example`) are added.
-5. `example.py` and `tests/test_example/` are deleted by the update if you did not change them;
+6. `example.py` and `tests/test_example/` are deleted by the update if you did not change them;
    otherwise delete them and their imports yourself.
-6. **Lockfile**: `uv lock && uv sync`. If `uv.lock` has conflict markers, do not merge it by hand:
+7. **Lockfile**: `uv lock && uv sync`. If `uv.lock` has conflict markers, do not merge it by hand:
    `git checkout HEAD -- uv.lock && uv lock`.
-7. **Make targets** were renamed (`check-*` → `lint`, `codestyle` → `format`, `cleanup` → `clean`,
+8. **Make targets** were renamed (`check-*` → `lint`, `codestyle` → `format`, `cleanup` → `clean`,
    `check-safety` → `audit`): update scripts that call the old names.
-8. **CI**: job names changed (GitHub: `lint`, `test`, `audit`, `docker-build`; GitLab: `lint`,
+9. **CI**: job names changed (GitHub: `lint`, `test`, `audit`, `docker-build`; GitLab: `lint`,
    `codequality`, `test`, `audit`, `docker-build`) — update required status checks / branch
    protection rules.
-9. Run `make lint test`, then commit.
+10. Run `make lint test`, then commit.
 
 ## [v0.1.0]
 

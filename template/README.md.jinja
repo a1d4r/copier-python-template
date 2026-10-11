@@ -2,175 +2,178 @@
 
 ## Installation
 
-1. Clone `git` repo:
+1. Install [`uv`](https://docs.astral.sh/uv/getting-started/installation/).
+   It also installs the Python version pinned in [`.python-version`](.python-version).
+
+2. Clone the repository:
 
 ```bash
 git clone {{ git_repo_url }}.git
-cd {{ project_name | lower | replace(' ', '-') }}
+cd {{ project_slug }}
 ```
 
-2. If you don't have `uv` installed run:
-
-```bash
-make uv-download
-```
-
-3. Initialize uv and install `pre-commit` hooks:
+3. Install dependencies and `pre-commit` hooks:
 
 ```bash
 make install
 make pre-commit-install
 ```
 
-4. Run formatters, linters, and tests. Make sure there is no errors.
+4. Run formatters, linters, and tests. Make sure there are no errors.
 
 ```bash
 make format lint test
 ```
 
-### Makefile usage
+## Usage
 
-[`Makefile`]({{ project_name | lower | replace(' ', '-') }}/Makefile)
-contains a lot of functions
-for faster development.
-
-<details>
-<summary>1. Download uv</summary>
-<p>
-
-To download and install uv run:
+Run the application locally:
 
 ```bash
-make uv-install
+make run
 ```
 
-</p>
-</details>
-
-<details>
-<summary>2. Install all dependencies and pre-commit hooks</summary>
-<p>
-
-Install requirements:
+or with Docker Compose:
 
 ```bash
-make install
+make up
 ```
 
-Pre-commit hooks coulb be installed after `git init` via
+The entry point is [`{{ package_name }}/__main__.py`]({{ package_name }}/__main__.py):
+`python -m {{ package_name }}` and the `{{ project_slug }}` console script run `main()`.
+
+## Configuration
+
+Settings live in [`{{ package_name }}/config.py`]({{ package_name }}/config.py)
+(`Settings`, a [`pydantic-settings`](https://docs.pydantic.dev/latest/concepts/pydantic_settings/) model).
+Values are read from environment variables, then from the `.env` file in the working directory,
+then from the defaults. Variable names have no prefix and are case-insensitive;
+nested settings use `__` as a delimiter (`DB__URL` sets `settings.db.url`).
+
+For local development copy the example file (`.env` is git-ignored) and edit it:
 
 ```bash
-make pre-commit-install
+cp .env.example .env
 ```
 
-</p>
-</details>
+| Variable | Default | Description |
+|---|---|---|
+| `LOG_LEVEL` | `INFO` | Minimum log level: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL` |
+| `LOG_FORMAT` | `console` | `console` (human-readable) for development, `json` for production |
 
-<details>
-<summary>3. Codestyle</summary>
-<p>
+Use `get_settings()` to access the settings; in tests set variables with
+`monkeypatch.setenv` (the fixtures in `tests/conftest.py` reset the cache between tests).
 
-Automatic formatting uses `ruff` formatter
+## Logging
+
+[`{{ package_name }}/logging_config.py`]({{ package_name }}/logging_config.py) sets up
+[`structlog`](https://www.structlog.org/) on top of the standard `logging` module.
+`configure_logging()` is called in `main()`; logs go to stdout.
+
+```python
+import structlog
+
+logger = structlog.stdlib.get_logger(__name__)
+logger.info("user created", user_id=42)
+```
+
+Loggers of third-party libraries (`logging.getLogger(...)`) go through the same processors,
+so with `LOG_FORMAT=json` every line is one JSON object with `timestamp`, `level`,
+`logger` and `event` keys. Bind request-scoped context with
+`structlog.contextvars.bind_contextvars(request_id=...)`.
+
+## Docker
+
+The [`Dockerfile`](Dockerfile) pins uv in its first (`uv`) stage and has three build stages:
+
+- `builder` installs the locked runtime dependencies and the project (as a regular,
+  non-editable package) into `/app/.venv` with `uv`;
+- `production` (`make docker-build`) copies only `/app/.venv` onto `python:{{ python_version }}-slim-trixie`,
+  runs as the non-root user `10001:10001` and logs JSON (`LOG_FORMAT=json`);
+  the app is PID 1 there, which ignores `SIGTERM` (`docker stop`, Kubernetes) unless it sets a
+  handler: `main()` does, frameworks (uvicorn, aiogram) set their own; a process that runs
+  child processes needs an init (`docker run --init`, or `tini` as `ENTRYPOINT`);
+- `development` (`make up`) has all dependency groups and an editable install;
+  `docker-compose.yml` mounts `{{ package_name }}/` into it and reads `.env` if it exists.
+
+[`.dockerignore`](.dockerignore) is an allowlist: only `pyproject.toml`, `uv.lock`,
+`.python-version` and `{{ package_name }}/` get into the build context.
+When the image needs another file or directory (e.g. `migrations/`), add a `!path` line there,
+otherwise it is silently missing from the image.
+
+## CI
+
+{%- if git_platform == 'github' %}
+
+[GitHub Actions](.github/workflows/lint-test.yml) run `make lint`, `make test` (coverage in the
+job summary), `make audit` and build the production image (without pushing it)
+for pull requests and pushes to `main`. The workflow only reads the repository
+(`permissions: contents: read`); actions are pinned to commit SHAs.
+
+[Dependabot](.github/dependabot.yml) opens weekly pull requests for GitHub Actions,
+`uv.lock` (dev tools grouped together) and the Docker base images.
+{%- else %}
+
+[GitLab CI](.gitlab-ci.yml) runs `make lint`, `make codequality`, `make test` (coverage,
+JUnit and Code Quality reports in merge requests), `make audit` and builds the production
+image (without pushing it) for merge requests, the default branch and tags. The jobs use
+the `ghcr.io/astral-sh/uv` image with Python {{ python_version }}; the image build needs a runner
+that allows Docker-in-Docker (privileged), like the GitLab.com instance runners.
+
+GitLab has no built-in dependency update bot: run `make update` and `make template-check`
+periodically, and add a weekly [pipeline schedule](https://docs.gitlab.com/ci/pipelines/schedules/)
+to re-run `audit` on the default branch.
+{%- endif %}
+
+`audit` does not block {{ 'pull' if git_platform == 'github' else 'merge' }} requests (a newly published
+vulnerability is not caused by the change under review), but it fails on the default branch.
+
+The uv version is pinned in two places, keep them in sync: the `uv` stage in the `Dockerfile`
+and `UV_VERSION` in the CI config.
+{%- if git_platform == 'github' %}
+Dependabot bumps only the `Dockerfile` line: update `UV_VERSION` in the same pull request.
+{%- endif %}
+
+## Development
+
+The [`Makefile`](Makefile) wraps the common `uv` commands.
+Run `make` without arguments to list all targets.
+
+| Command | What it does |
+|---|---|
+| `make install` | Create `.venv` and install the project with all dependency groups |
+| `make format` | Apply safe `ruff` fixes and format the code |
+| `make lint` | Check `uv.lock`, run `ruff`, `mypy` and `deptry` |
+| `make test` | Run `pytest` with coverage, reports go to `reports/` |
+| `make audit` | Check locked runtime dependencies with `uv audit` |
+| `make update` | Upgrade all dependencies in `uv.lock` |
+| `make docker-build` | Build the production Docker image |
+| `make up` / `make down` | Start / stop Docker Compose services |
+| `make clean` | Remove caches, reports and build artifacts |
+
+Dev tools (`ruff`, `mypy`, `pytest`, ...) have only lower bounds in `pyproject.toml`;
+the exact versions are locked in `uv.lock`. `ruff` selects all rules, so upgrading it
+may report new violations: fix them or add the rule to `ignore`.
+
+The Python version comes from the template answers and is used in
+`.python-version`, `pyproject.toml`, CI and the `Dockerfile`.
+`uv python pin` changes it only locally; to change it everywhere run:
 
 ```bash
-make codestyle
-
-# or use synonym
-make format
+make template-update COPIER_ARGS="--trust --data python_version=3.13"
 ```
 
-Codestyle checks only, without rewriting files:
+## Template updates
+
+This project was generated with [`copier-python-template`](https://github.com/a1d4r/copier-python-template).
+To pull in template changes (on a clean git tree):
 
 ```bash
-make check-codestyle
+make template-check    # is a newer template version available?
+make template-update COPIER_ARGS=--trust   # copier update, then uv lock && uv sync
 ```
 
-Update all libraries to the latest version using one command
-
-```bash
-make update
-```
-
-</p>
-</details>
-
-<details>
-<summary>4. Code security</summary>
-<p>
-
-This command identifies security issues with `Safety`
-
-```bash
-make check-safety
-```
-
-</p>
-</details>
-
-<details>
-<summary>5. Type checks</summary>
-<p>
-
-Run `mypy` static type checker
-
-```bash
-make mypy
-```
-
-</p>
-</details>
-
-<details>
-<summary>6. Tests with coverage</summary>
-<p>
-
-Run `pytest`
-
-```bash
-make test
-```
-
-</p>
-</details>
-
-<details>
-<summary>7. All linters</summary>
-<p>
-
-Of course there is a command to ~~rule~~ run all linters in one:
-
-```bash
-make lint
-```
-
-</p>
-</details>
-
-<details>
-<summary>8. Docker</summary>
-<p>
-
-Run with docker compose
-
-```bash
-make docker-up
-```
-
-</p>
-</details>
-
-<details>
-<summary>9. Cleanup</summary>
-<p>
-Delete cache and build files:
-
-```bash
-make cleanup
-```
-
-</p>
-</details>
-
-## Credits
-
-This project was generated with [`copier-python-template`](https://github.com/a1d4r/copier-python-template)
+The template runs tasks (`uv lock`), so Copier refuses to update without `--trust`.
+To drop the flag, add the template to `trust` in Copier's
+[settings file](https://copier.readthedocs.io/en/stable/settings/).
+Conflicts are written inline (`<<<<<<<` markers): resolve them, then run `uv lock && uv sync`.

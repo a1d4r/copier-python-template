@@ -6,7 +6,7 @@ dependencies = []
 
 [dependency-groups]
 dev = [
-    "copier>=9.14.1",
+    "copier>=9.15.0",
     "mypy>=1.20.0,<2",
     "pre-commit>=4.5.1,<5",
     "pytest>=9.0.2,<10",
@@ -14,6 +14,10 @@ dev = [
     "pytest-timeout>=2.4.0,<3",
     "coverage>=7.13.5,<8",
     "ruff>=0.15.9,<0.16",
+    "pyyaml>=6.0.2",
+    "types-pyyaml>=6.0.12",
+    "zizmor>=1.30.1",
+    "actionlint-py>=1.7.12",
 ]
 
 [tool.uv]
@@ -86,6 +90,8 @@ output = "reports/coverage.xml"
 [tool.ruff]
 # https://docs.astral.sh/ruff/settings/#top-level
 line-length = 100
+# Rendered code is checked inside generated projects (tests/), with their own config.
+extend-exclude = ["template", "examples"]
 
 [tool.ruff.lint]
 # https://docs.astral.sh/ruff/settings/#lint

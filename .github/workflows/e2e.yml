@@ -5,52 +5,56 @@ on:
     branches: [main, master]
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # Only superseded pull request runs: every push to the default branch gets a full run.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  ACT_VERSION: v0.2.89
+  # sha256 of act_Linux_x86_64.tar.gz from the release's checksums.txt.
+  ACT_SHA256: 0191d6f1f3b716b5c55820032605d05fc3c1cdbf581ebeff655019e5dd1524c0
+  # Keep in sync with tests/test_github_actions.py.
+  ACT_RUNNER_IMAGE: catthehacker/ubuntu:act-24.04
+  GITLAB_CI_LOCAL_VERSION: 4.76.1
+
 jobs:
   make-test:
+    name: make install lint test audit (${{ matrix.variant }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - python-version: "3.9"
-            install-pydantic: false
-          - python-version: "3.10"
-            install-pydantic: false
-          - python-version: "3.11"
-            install-pydantic: false
-          - python-version: "3.12"
-            install-pydantic: false
-          - python-version: "3.13"
-            install-pydantic: false
-          - python-version: "3.13"
-            install-pydantic: true
+        # Ids of tests/test_make.py::VARIANTS (`python_version` choices + gitlab).
+        variant: ["3.12", "3.13", "3.14", "gitlab"]
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           fetch-depth: 0  # copier needs full git history for vcs_ref=HEAD
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.14"
+          persist-credentials: false
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884  # v10.3.0
+        with:
+          enable-cache: true
 
       - name: Install dependencies
-        run: uv sync --locked --all-extras --dev
-
-      - name: Pull Docker image
-        run: docker pull ghcr.io/astral-sh/uv:python${{ matrix.python-version }}-trixie-slim
+        run: uv sync --locked
 
       - name: Run E2E test
         run: >
           uv run pytest
-          "tests/test_make.py::test_make_format_lint_test[${{ matrix.python-version }}-${{ matrix.install-pydantic == true && 'True' || 'False' }}]"
+          "tests/test_make.py::test_make_install_lint_test_audit[${MATRIX_VARIANT}]"
           -v --timeout=300
+        env:
+          MATRIX_VARIANT: ${{ matrix.variant }}
 
   github-template-test:
+    name: GitHub Actions via act (${{ matrix.test }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -60,57 +64,78 @@ jobs:
           - test_github_actions_test
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           fetch-depth: 0
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.14"
+          persist-credentials: false
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884  # v10.3.0
+        with:
+          enable-cache: true
 
       - name: Install dependencies
-        run: uv sync --locked --all-extras --dev
+        run: uv sync --locked
 
       - name: Install act
-        run: curl -s https://raw.githubusercontent.com/nektos/act/master/install.sh | bash -s -- -b /usr/local/bin v0.2.84
+        run: |
+          curl -sSfLO "https://github.com/nektos/act/releases/download/${ACT_VERSION}/act_Linux_x86_64.tar.gz"
+          echo "${ACT_SHA256}  act_Linux_x86_64.tar.gz" | sha256sum -c -
+          sudo tar -xzf act_Linux_x86_64.tar.gz -C /usr/local/bin act
+          act --version
 
       - name: Pull act runner image
-        run: docker pull catthehacker/ubuntu:act-22.04
+        run: docker pull "${ACT_RUNNER_IMAGE}"
 
       - name: Run act test
         run: >
           uv run pytest
-          "tests/test_github_actions.py::${{ matrix.test }}"
+          "tests/test_github_actions.py::${MATRIX_TEST}"
           -v --timeout=600
+        env:
+          MATRIX_TEST: ${{ matrix.test }}
 
   gitlab-ci-test:
+    name: GitLab CI via gitlab-ci-local
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           fetch-depth: 0
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.14"
+          persist-credentials: false
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884  # v10.3.0
+        with:
+          enable-cache: true
 
       - name: Install dependencies
-        run: uv sync --locked --all-extras --dev
+        run: uv sync --locked
 
       - name: Install gitlab-ci-local
-        run: npm install -g gitlab-ci-local@4.70.1
-
-      - name: Pull Python image
-        run: docker pull python:3.13
+        run: npm install -g "gitlab-ci-local@${GITLAB_CI_LOCAL_VERSION}"  # zizmor: ignore[adhoc-packages] pinned version
 
       - name: Run gitlab-ci-local tests
         run: uv run pytest tests/test_gitlab_ci.py -v --timeout=600
+
+  docker-image-test:
+    name: Production Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884  # v10.3.0
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Build and run the production image
+        run: uv run pytest tests/test_docker.py -m e2e -v --timeout=600

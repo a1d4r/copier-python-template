@@ -1,0 +1,12 @@
+# Allowlist: the build context contains only what the image needs, so .git,
+# tests, .venv, .env and local caches never get into the image or bust the
+# layer cache. A new file or directory the image needs must be added here.
+*
+!pyproject.toml
+!uv.lock
+!.python-version
+!example_app
+
+# Re-exclude local artifacts inside the allowed paths.
+**/__pycache__
+**/*.py[cod]

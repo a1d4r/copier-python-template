@@ -1,6 +1,13 @@
-_min_copier_version: "9.0.0"
+# 9.15.0 is the first release supporting `_envops.undefined: jinja2.StrictUndefined`
+# (`_copier_operation`, used by `_tasks`, appeared in 9.6.0).
+_min_copier_version: "9.15.0"
 _subdirectory: template
 _templates_suffix: .jinja
+
+_envops:
+  # Fail on undefined variables (e.g. a typo like `{{ pakage_name }}`)
+  # instead of silently rendering an empty string.
+  undefined: jinja2.StrictUndefined
 
 _exclude:
   - "*.pyc"
@@ -8,16 +15,46 @@ _exclude:
   - .git
   - .DS_Store
 
+# Seed files: rendered on `copier copy` (or when missing), never overwritten
+# by `copier update`. Application code belongs to the project, the template
+# keeps updating only the tooling. A deleted seed file is recreated on update,
+# so every file here must be useful on its own (no empty placeholders).
+# Patterns are rendered, so they may use answers.
+_skip_if_exists:
+  - README.md
+  - .env.example
+  - "{{ package_name }}/__main__.py"
+  - "{{ package_name }}/config.py"
+  - "{{ package_name }}/logging_config.py"
+  # Tests of the seed modules above follow the user's changes to them.
+  - tests/conftest.py
+  - tests/test_config.py
+  - tests/test_logging.py
+  - tests/test_main.py
+
 # Questions
 project_name:
   type: str
-  help: Project name
+  help: Human-readable project name
   default: "python-project"
+  validator: >-
+    {% if not project_name.strip() %}
+    Project name must not be empty.
+    {% endif %}
+
+project_slug:
+  type: str
+  help: Project slug (kebab-case), used as distribution, repository and directory name
+  default: "{{ project_name | lower | regex_replace('[^a-z0-9]+', '-') | trim('-') }}"
+  validator: >-
+    {% if not (project_slug | regex_search('^[a-z][a-z0-9]*(-[a-z0-9]+)*$')) %}
+    Must be kebab-case: lowercase letters, digits and single hyphens, starting with a letter.
+    {% endif %}
 
 package_name:
   type: str
   help: Python package name
-  default: "{{ project_name | lower | replace(' ', '-') | replace('-', '_') }}"
+  default: "{{ project_slug | replace('-', '_') }}"
   validator: >-
     {% if not (package_name | regex_search('^[a-z][a-z0-9_]*$')) %}
     Must be a valid Python module name (lowercase, starts with letter).
@@ -33,51 +70,110 @@ git_platform:
 
 username:
   type: str
-  help: Username on the git platform
+  help: Username or organization on the git platform
   default: "username"
 
 git_repo_url:
   type: str
   help: Git repository URL
-  default: "https://{{ git_platform }}.com/{{ username | lower }}/{{ project_name | lower | replace(' ', '-') }}"
+  default: "https://{{ git_platform }}.com/{{ username | lower }}/{{ project_slug }}"
 
 python_version:
   type: str
-  help: Minimum Python version
-  default: "3.9"
+  help: Python version the application runs on (Docker images, CI, type checking)
+  choices:
+    - "3.12"
+    - "3.13"
+    - "3.14"
+  default: "3.14"
 
 line_length:
   type: int
-  help: Max line length for ruff (50-300)
+  help: Max line length for code, comments and docstrings (79-300)
   default: 88
   validator: >-
-    {% if line_length < 50 or line_length > 300 %}
-    Line length must be between 50 and 300.
+    {% if line_length < 79 or line_length > 300 %}
+    Line length must be between 79 and 300.
     {% endif %}
 
-install_pydantic:
-  type: bool
-  help: Include Pydantic as a dependency?
-  default: true
-
+# Tasks run inside the destination with the system shell. They must never
+# fail: a failed task during `copier copy` makes Copier delete the whole
+# generated project, so every command degrades to a warning.
 _tasks:
-  - "git init"
-  - command: "uv sync"
+  # `copier copy` only: create the repository (unless the destination is
+  # already inside one) and install the environment.
+  - command: >-
+      git rev-parse --is-inside-work-tree >/dev/null 2>&1
+      || git init --initial-branch=main
+      || echo "WARNING: 'git init' failed; initialize the repository manually." >&2
     when: "{{ _copier_operation == 'copy' }}"
+  - command: >-
+      if command -v uv >/dev/null 2>&1; then
+      uv sync || echo "WARNING: 'uv sync' failed; run 'make install' manually." >&2;
+      else
+      echo "WARNING: uv not found; install it (https://docs.astral.sh/uv/) and run 'make install'." >&2;
+      fi
+    when: "{{ _copier_operation == 'copy' }}"
+  # The seed code is written for the default line length and a short package
+  # name; reformat it for the chosen `line_length` and `package_name`.
+  - command: >-
+      if command -v uv >/dev/null 2>&1 && [ -d .venv ]; then
+      { uv run --frozen --no-sync ruff check --fix-only --quiet
+      && uv run --frozen --no-sync ruff format --quiet; }
+      || echo "WARNING: formatting the generated code failed; run 'make format'." >&2;
+      fi
+    when: "{{ _copier_operation == 'copy' }}"
+  # `copier update` only: refresh uv.lock after pyproject.toml changes.
+  # During an update Copier renders the old and the new template versions
+  # into temporary directories and runs this task there as well. That is
+  # intended: with a lockfile in every copy, uv.lock takes part in the 3-way
+  # merge, so the user's own dependencies and pins are kept.
+  - command: >-
+      if command -v uv >/dev/null 2>&1; then
+      uv lock || echo "WARNING: 'uv lock' failed; run it manually after the update." >&2;
+      else
+      echo "WARNING: uv not found; run 'uv lock' manually after the update." >&2;
+      fi
+    when: "{{ _copier_operation == 'update' }}"
+
+_message_after_copy: |
+  Project "{{ project_name }}" has been created.
+
+  Next steps:
+
+    cd {{ _copier_conf.dst_path }}
+    make install              # create .venv and install dependencies (uv sync)
+    make pre-commit-install   # install git hooks
+    make lint test            # make sure everything is green
+    git add -A && git commit -m "Initial commit from copier-python-template"
+    git remote add origin {{ git_repo_url }}.git
+
+  The first commit is required for future `copier update` runs.
+
+_message_after_update: |
+  Project "{{ project_name }}" has been updated. Next steps:
+
+    1. Resolve conflicts:  git status; git diff --check   (look for `<<<<<<<` markers and *.rej files)
+       If uv.lock has conflicts, do not edit it by hand: git checkout HEAD -- uv.lock && uv lock
+    2. Sync the env:       uv lock && uv sync
+    3. Run the checks:     make lint test
 
 # Migrations run only on `copier update` when the target version crosses
 # the threshold: new_version >= version > old_version.
 # - `_stage == "before"`: before update; use to migrate `.copier-answers.yml`
 #   (it is reloaded after this stage).
 # - `_stage == "after"`: after update + user-diff reapply; use for cleanup.
-# Add entries here when introducing breaking changes. See CONTRIBUTING.md.
+# A last resort: any applicable migration makes `copier update` unsafe
+# (needs --trust). Removed questions need none, Copier drops their answers.
+# See "Answers and migrations" in CONTRIBUTING.md.
+# Keep commands portable (no GNU-only flags such as `sed -i`).
 #
 # Example:
 # _migrations:
-#   - version: v0.2.0
-#     command: "sed -i 's/old_var:/new_var:/' {{ _copier_conf.answers_file }}"
+#   - version: v0.3.0
+#     command: ["{{ _copier_python }}", "{{ _copier_conf.src_path }}/migrations/v0_3_0.py"]
 #     when: "{{ _stage == 'before' }}"
-#   - version: v0.2.0
+#   - version: v0.3.0
 #     command: "rm -f legacy_file.txt"
 #     when: "{{ _stage == 'after' }}"
 _migrations: []

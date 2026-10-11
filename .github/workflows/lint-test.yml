@@ -7,73 +7,54 @@ on:
       - master
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # Only superseded pull request runs: every push to the default branch gets a full run.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   lint:
+    name: Lint
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        id: setup-python
-        uses: actions/setup-python@v5
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
-          python-version: "3.14"
+          persist-credentials: false
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
-
-      - name: Load cache
-        id: cached-poetry-dependencies
-        uses: actions/cache@v4
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884  # v10.3.0
         with:
-          path: .venv
-          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/uv.lock') }}
+          enable-cache: true
 
-      - name: Install dependencies if cache does not exist
-        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        run: uv sync --locked --all-extras --dev
+      - name: Install dependencies
+        run: uv sync --locked
 
-      - name: Check dependencies
-        run: make check-dependencies
-
-      - name: Check codestyle
-        run: make check-codestyle
-
-      - name: ruff
-        run: make check-ruff-github
-
-      - name: mypy
-        run: make check-mypy
+      - name: Lint
+        run: make lint
 
   test:
+    name: Test
     runs-on: ubuntu-latest
     steps:
-
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
-          fetch-depth: 0  # copier needs full git history for vcs_ref=HEAD
-
-      - name: Set up Python
-        id: setup-python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.14"
+          # Copier needs the full history and the release tags (vcs_ref=HEAD,
+          # tests/test_update.py updates from the last releases).
+          fetch-depth: 0
+          persist-credentials: false
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
-
-      - name: Load cache
-        id: cached-poetry-dependencies
-        uses: actions/cache@v4
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884  # v10.3.0
         with:
-          path: .venv
-          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/uv.lock') }}
+          enable-cache: true
 
-      - name: Install dependencies if cache does not exist
-        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        run: uv sync --locked --all-extras --dev
+      - name: Install dependencies
+        run: uv sync --locked
 
       - name: Run tests (excluding e2e)
         run: uv run pytest -m "not e2e"

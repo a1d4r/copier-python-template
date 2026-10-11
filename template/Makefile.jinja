@@ -1,142 +1,101 @@
-#* Variables
 SHELL := /usr/bin/env bash -o pipefail
-PYTHON := python3
+.DEFAULT_GOAL := help
 
-#* Directories with source code
-CODE = {{ package_name }} tests
-TESTS = tests
+PACKAGE := {{ package_name }}
+IMAGE ?= {{ project_slug }}
+# The template enforces its own minimum Copier version (`_min_copier_version`).
+COPIER ?= uvx --from 'copier>=9.15.0' copier
+COPIER_ARGS ?=
 
-#* uv package manager
-.PHONY: uv-install
-uv-install:
-	curl -LsSf https://astral.sh/uv/install.sh | sh
+.PHONY: help
+help: ## Show this help
+	@awk 'BEGIN {FS = ":.*## "} /^##@/ {printf "\n%s\n", substr($$0, 5)} \
+		/^[a-zA-Z0-9_-]+:.*## / {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-#* Installation
+##@ Development
+
 .PHONY: install
-install:
+install: ## Create .venv and install the project with all dependency groups
 	uv sync
 
 .PHONY: pre-commit-install
-pre-commit-install:
+pre-commit-install: ## Install git pre-commit hooks
 	uv run pre-commit install
 
-#* Formatters
-.PHONY: codestyle
-codestyle:
-	uv run ruff format $(CODE)
-	uv run ruff check $(CODE) --fix-only
-
 .PHONY: format
-format: codestyle
-
-#* Test
-.PHONY: test
-test:
-	uv run pytest
-	uv run coverage xml
-
-# Validate dependencies
-.PHONY: check-uv
-check-uv:
-	uv lock --check
-
-.PHONY: check-deptry
-check-deptry:
-	uv run deptry .
-
-.PHONY: check-dependencies
-check-dependencies: check-uv check-deptry
-
-#* Static linters
-
-.PHONY: check-ruff
-check-ruff:
-	uv run ruff check $(CODE) --no-fix
-
-.PHONY: check-codestyle
-check-codestyle:
-	uv run ruff format $(CODE) --check
-{% if git_platform == 'gitlab' %}
-.PHONY: check-ruff-gitlab
-check-ruff-gitlab:
-	uv run ruff check $(CODE) --output-format=gitlab > ruff-report.json
-{% endif %}
-{% if git_platform == 'github' %}
-.PHONY: check-ruff-github
-check-ruff-github:
-	uv run ruff check $(CODE) --no-fix --output-format=github
-{% endif %}
-
-.PHONY: check-mypy
-check-mypy:
-	uv run mypy --install-types --non-interactive --config-file pyproject.toml $(CODE)
-{% if git_platform == 'gitlab' %}
-.PHONY: check-mypy-gitlab
-check-mypy-gitlab:
-	uv run mypy --install-types --non-interactive --no-error-summary --no-pretty --config-file pyproject.toml $(CODE) \
-	2>&1 | uv run mypy-gitlab-code-quality > mypy-report.json
-{% endif %}
-.PHONY: static-lint
-static-lint: check-ruff check-mypy
-
-#* Check safety
-
-.PHONY: check-safety
-check-safety:
-	uv run safety check --full-report
+format: ## Apply safe lint fixes and format the code
+	uv run ruff check --fix-only
+	uv run ruff format
 
 .PHONY: lint
-lint: check-dependencies check-codestyle static-lint
+lint: ## Run all checks: uv.lock, ruff, mypy, deptry
+	uv lock --check
+	uv run ruff format --check
+	uv run ruff check
+	uv run mypy
+	uv run deptry .
 
-# Currently not supported in uv: https://github.com/astral-sh/uv/issues/6794
-#.PHONY: update-dev-deps
-#update-dev-deps:
-#	poetry add -G dev mypy@latest pre-commit@latest pytest@latest deptry@latest \
-#										coverage@latest safety@latest typeguard@latest ruff@latest
+.PHONY: test
+test: ## Run tests with coverage (reports in ./reports)
+	uv run pytest
+
+# `uv audit` is a preview feature; the flag opts in and silences its warning.
+.PHONY: audit
+audit: ## Check locked runtime dependencies for known vulnerabilities
+	uv audit --preview-features audit-command --locked --no-default-groups
+
+.PHONY: run
+run: ## Run the application
+	uv run python -m $(PACKAGE)
 
 .PHONY: update
-update:
+update: ## Upgrade all dependencies in uv.lock
 	uv lock --upgrade
+	uv sync
 
-# Docker compose
+.PHONY: clean
+clean: ## Remove caches, reports and build artifacts
+	rm -rf .mypy_cache .pytest_cache .ruff_cache reports build dist
+	find . -path ./.venv -prune -o -name __pycache__ -type d -prune -exec rm -rf {} +
+{%- if git_platform == 'gitlab' %}
 
-.PHONY: docker-up
-docker-up:
-	docker compose up
+.PHONY: codequality
+codequality: ## (CI) Write GitLab Code Quality reports for ruff and mypy
+	@mkdir -p reports
+	uv run ruff check --exit-zero --output-format=gitlab --output-file=reports/ruff-codequality.json
+	uv run mypy --no-error-summary --no-pretty \
+		| uv run mypy-gitlab-code-quality > reports/mypy-codequality.json || true
+{%- endif %}
 
-#* Cleaning
-.PHONY: pycache-remove
-pycache-remove:
-	find . | grep -E "(__pycache__|\.pyc|\.pyo$$)" | xargs rm -rf || true
+##@ Docker
 
-.PHONY: dsstore-remove
-dsstore-remove:
-	find . | grep -E ".DS_Store" | xargs rm -rf || true
+.PHONY: docker-build
+docker-build: ## Build the production image
+	docker build --target production --tag $(IMAGE) .
 
-.PHONY: mypycache-remove
-mypycache-remove:
-	find . | grep -E ".mypy_cache" | xargs rm -rf || true
+.PHONY: up
+up: ## Start the app with docker compose (development image)
+	docker compose up --build
 
-.PHONY: ipynbcheckpoints-remove
-ipynbcheckpoints-remove:
-	find . | grep -E ".ipynb_checkpoints" | xargs rm -rf || true
+.PHONY: down
+down: ## Stop docker compose services
+	docker compose down
 
-.PHONY: pytestcache-remove
-pytestcache-remove:
-	find . | grep -E ".pytest_cache" | xargs rm -rf || true
+##@ Template
 
-.PHONY: ruffcache-remove
-ruffcache-remove:
-	find . | grep -E ".ruff_cache" | xargs rm -rf || true
+.PHONY: template-update
+template-update: ## Update from the Copier template (pass e.g. COPIER_ARGS=--trust)
+	$(COPIER) update --conflict inline --skip-answered $(COPIER_ARGS)
+	@if git grep --untracked -lE '^(<<<<<<<|>>>>>>>)( |$$)' -- . ':!uv.lock'; then \
+		echo "Resolve the conflicts in the files above, then run: uv lock && uv sync" >&2; \
+		exit 1; \
+	fi
+	@if git grep --untracked -qE '^(<<<<<<<|>>>>>>>)( |$$)' -- uv.lock; then \
+		git checkout HEAD -- uv.lock; \
+	fi
+	uv lock
+	uv sync
 
-.PHONY: build-remove
-build-remove:
-	rm -rf build/
-
-.PHONY: reports-remove
-reports-remove:
-	rm -rf reports/
-
-.PHONY: cleanup
-cleanup: pycache-remove dsstore-remove mypycache-remove ruffcache-remove \
-ipynbcheckpoints-remove pytestcache-remove reports-remove
+.PHONY: template-check
+template-check: ## Check whether a newer template version is available
+	$(COPIER) check-update

@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 
 def test_defaults() -> None:
-    settings = Settings(_env_file=None)
+    settings = Settings()
 
     assert settings.log_level == "INFO"
     assert settings.log_format == "console"
@@ -24,17 +24,18 @@ def test_env_overrides_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("LOG_LEVEL", "debug")
     monkeypatch.setenv("LOG_FORMAT", "json")
 
-    settings = Settings(_env_file=None)
+    settings = Settings()
 
     assert settings.log_level == "DEBUG"
     assert settings.log_format == "json"
 
 
-def test_env_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    (tmp_path / ".env").write_text("LOG_LEVEL=WARNING\nUNKNOWN=1\n")
-    monkeypatch.chdir(tmp_path)
+def test_env_file(tmp_path: Path) -> None:
+    env_file = tmp_path / ".env"
+    env_file.write_text("LOG_LEVEL=WARNING\nUNKNOWN=1\n")
 
-    assert Settings().log_level == "WARNING"
+    # conftest.py turns .env off: pass it.
+    assert Settings(_env_file=env_file).log_level == "WARNING"
 
 
 @pytest.mark.parametrize(
@@ -44,7 +45,7 @@ def test_invalid_value(monkeypatch: pytest.MonkeyPatch, name: str, value: str) -
     monkeypatch.setenv(name, value)
 
     with pytest.raises(pydantic.ValidationError):
-        Settings(_env_file=None)
+        Settings()
 
 
 def test_get_settings_is_cached(monkeypatch: pytest.MonkeyPatch) -> None:

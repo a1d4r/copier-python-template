@@ -131,13 +131,29 @@ def test_seed_files_are_not_overwritten(tmp_path: Path) -> None:
 
 
 def test_generated_tests_pass(installed: Path) -> None:
-    if shutil.which("uv") is None:
-        pytest.skip("uv not found")
+    if shutil.which("uv") is None or shutil.which("make") is None:
+        pytest.skip("uv or make not found")
 
-    result = _run(installed, "uv", "run", "--frozen", "pytest")
+    # The developer's .env must not leak into the tests (conftest.py turns it off).
+    env_file = installed / ".env"
+    env_file.write_text("LOG_LEVEL=ERROR\nLOG_FORMAT=json\n")
+    try:
+        result = _run(installed, "make", "test")
+    finally:
+        env_file.unlink()
 
     assert result.returncode == 0, result.stdout + result.stderr
     assert "Required test coverage" in result.stdout
+
+
+def test_generated_partial_test_run_passes(installed: Path) -> None:
+    """The coverage threshold applies to `make test`, not to a subset of the tests."""
+    if shutil.which("uv") is None:
+        pytest.skip("uv not found")
+
+    result = _run(installed, "uv", "run", "--frozen", "pytest", "tests/test_config.py")
+
+    assert result.returncode == 0, result.stdout + result.stderr
 
 
 @pytest.mark.parametrize(
@@ -169,6 +185,7 @@ def test_entry_point_logs_json(installed: Path) -> None:
 
     assert result.returncode == 0, result.stderr
     assert '"event": "application started"' in result.stdout
+    assert '"logger": "test_project"' in result.stdout
 
 
 def test_seed_code_is_formatted_for_answers(tmp_path: Path) -> None:

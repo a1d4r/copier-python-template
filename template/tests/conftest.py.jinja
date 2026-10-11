@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import logging
+import os
 
 import pytest
 import structlog
@@ -17,9 +18,12 @@ if TYPE_CHECKING:
 
 @pytest.fixture(autouse=True)
 def isolate_settings(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
-    """Hide the env, reset cached settings."""
-    for name in Settings.model_fields:
-        monkeypatch.delenv(name.upper(), raising=False)
+    """Hide env vars and .env, reset settings."""
+    # Case-insensitive; DB__URL sets field `db`.
+    for name in list(os.environ):
+        if name.lower().partition("__")[0] in Settings.model_fields:
+            monkeypatch.delenv(name)
+    monkeypatch.setitem(Settings.model_config, "env_file", None)
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()

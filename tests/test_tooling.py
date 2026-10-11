@@ -130,7 +130,8 @@ def test_pytest_config(pyproject: dict[str, Any]) -> None:
 def test_coverage_config(pyproject: dict[str, Any]) -> None:
     coverage = pyproject["tool"]["coverage"]
 
-    assert coverage["report"]["fail_under"] > 0
+    # The threshold is checked by `make test` only, so partial runs do not fail on it.
+    assert "fail_under" not in coverage["report"]
     assert coverage["run"]["omit"] == ["test_project/__main__.py"]
 
 
@@ -153,6 +154,8 @@ def test_make_targets(project: Path) -> None:
     assert ".DEFAULT_GOAL := help" in makefile
     assert "curl" not in makefile
     assert "--trust" not in makefile.replace("COPIER_ARGS=--trust", "")
+    assert re.search(r"^COV_FAIL_UNDER \?= [1-9]\d*$", makefile, flags=re.MULTILINE)
+    assert "uv run pytest --cov-fail-under=$(COV_FAIL_UNDER)" in makefile
 
 
 def test_make_help_lists_targets(project: Path) -> None:

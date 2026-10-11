@@ -213,6 +213,10 @@ def test_update_from_release_matches_fresh_copy(tmp_path: Path, from_tag: str) -
     )
 
     assert not _conflicts(project)
+    # Copier drops answers to questions removed since the release (no migrations needed).
+    answers = yaml.safe_load((project / ".copier-answers.yml").read_text())
+    questions = {key for key in COPIER_CONFIG if not key.startswith("_")}
+    assert set(answers) - {"_commit", "_src_path"} <= questions
     # Seed files that existed in the old release stay as they were.
     tracked = set(git(project, "ls-files").split())
     seeds = {path.replace("{{ package_name }}", "demo_app") for path in SEED_PATTERNS}

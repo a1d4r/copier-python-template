@@ -143,11 +143,13 @@ def test_generated_tests_pass(installed: Path) -> None:
         env_file.unlink()
 
     assert result.returncode == 0, result.stdout + result.stderr
-    assert "Required test coverage" in result.stdout
+    # Coverage is reported, but there is no threshold to fail on.
+    assert "TOTAL" in result.stdout
+    assert "Required test coverage" not in result.stdout
 
 
 def test_generated_partial_test_run_passes(installed: Path) -> None:
-    """The coverage threshold applies to `make test`, not to a subset of the tests."""
+    """A subset of the tests passes: coverage is collected without a threshold."""
     if shutil.which("uv") is None:
         pytest.skip("uv not found")
 

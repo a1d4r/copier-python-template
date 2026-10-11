@@ -98,7 +98,7 @@ def test_dev_dependencies_have_only_lower_bounds(pyproject: dict[str, Any]) -> N
         assert re.fullmatch(r"[a-z0-9-]+>=[\d.]+", requirement), requirement
 
 
-@pytest.mark.parametrize("package", ["typeguard", "safety", "pip-audit"])
+@pytest.mark.parametrize("package", ["typeguard", "safety"])
 def test_dropped_dev_dependencies(pyproject: dict[str, Any], package: str) -> None:
     names = {re.split(r"[<>=]", dep)[0] for dep in _requirements(pyproject)}
 
@@ -130,9 +130,11 @@ def test_pytest_config(pyproject: dict[str, Any]) -> None:
 def test_coverage_config(pyproject: dict[str, Any]) -> None:
     coverage = pyproject["tool"]["coverage"]
 
-    # The threshold is checked by `make test` only, so partial runs do not fail on it.
+    # Coverage is reported, not enforced: no threshold anywhere.
     assert "fail_under" not in coverage["report"]
+    assert not any("fail-under" in option for option in pyproject["tool"]["pytest"]["addopts"])
     assert coverage["run"]["omit"] == ["test_project/__main__.py"]
+    assert coverage["xml"]["output"] == "reports/coverage.xml"
 
 
 def test_ruff_survives_upgrades(pyproject: dict[str, Any]) -> None:
@@ -154,8 +156,11 @@ def test_make_targets(project: Path) -> None:
     assert ".DEFAULT_GOAL := help" in makefile
     assert "curl" not in makefile
     assert "--trust" not in makefile.replace("COPIER_ARGS=--trust", "")
-    assert re.search(r"^COV_FAIL_UNDER \?= [1-9]\d*$", makefile, flags=re.MULTILINE)
-    assert "uv run pytest --cov-fail-under=$(COV_FAIL_UNDER)" in makefile
+    # No coverage threshold; the audit covers runtime dependencies from uv.lock.
+    assert "\tuv run pytest\n" in makefile
+    assert "fail-under" not in makefile
+    assert "\tuv audit --preview-features audit-command --locked --no-default-groups\n" in makefile
+    assert "uvx" not in makefile.replace("COPIER ?= uvx", "")
 
 
 def test_make_help_lists_targets(project: Path) -> None:

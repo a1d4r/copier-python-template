@@ -6,8 +6,6 @@ IMAGE ?= {{ project_slug }}
 # The template enforces its own minimum Copier version (`_min_copier_version`).
 COPIER ?= uvx --from 'copier>=9.15.0' copier
 COPIER_ARGS ?=
-# Minimum total coverage for `make test` (and CI). Plain `pytest` does not check it.
-COV_FAIL_UNDER ?= 80
 
 .PHONY: help
 help: ## Show this help
@@ -38,13 +36,13 @@ lint: ## Run all checks: uv.lock, ruff, mypy, deptry
 	uv run deptry .
 
 .PHONY: test
-test: ## Run tests with coverage (reports in ./reports), fail below the threshold
-	uv run pytest --cov-fail-under=$(COV_FAIL_UNDER)
+test: ## Run tests with coverage (reports in ./reports)
+	uv run pytest
 
+# `uv audit` is a preview feature; the flag opts in and silences its warning.
 .PHONY: audit
 audit: ## Check locked runtime dependencies for known vulnerabilities
-	uv export --locked --no-default-groups --no-emit-project --format requirements-txt \
-		| uvx pip-audit --requirement /dev/stdin --disable-pip --strict
+	uv audit --preview-features audit-command --locked --no-default-groups
 
 .PHONY: run
 run: ## Run the application

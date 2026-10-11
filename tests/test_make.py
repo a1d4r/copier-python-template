@@ -25,13 +25,14 @@ VARIANTS: dict[str, dict[str, Any]] = {
 @pytest.mark.e2e
 @pytest.mark.slow
 @pytest.mark.timeout(300)
-def test_make_install_lint_test(
+def test_make_install_lint_test_audit(
     generate_project: Callable[..., Path], answers: dict[str, Any]
 ) -> None:
     check_tool("docker")
 
     # Without tasks: no host .venv in the mounted directory, and the code is
     # checked exactly as rendered — `make lint` runs before any `make format`.
+    # `make audit` queries the OSV API, so this test needs network access.
     project = generate_project(skip_tasks=True, **answers)
     python = (project / ".python-version").read_text().strip()
     image = DOCKER_IMAGE.format(uv=dockerfile_uv_version(project), python=python)
@@ -49,7 +50,7 @@ def test_make_install_lint_test(
             "bash",
             "-c",
             "apt-get update -qq && apt-get install -y -qq make > /dev/null"
-            " && make install && make lint test",
+            " && make install && make lint test audit",
         ],
         capture_output=True,
         text=True,

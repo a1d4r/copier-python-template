@@ -21,7 +21,7 @@ make examples            # after changing template/: re-render examples/ and com
 - `tests/test_examples.py` fails while `examples/` is stale: run `make examples`.
 - The other tests generate projects with tasks and run their tooling (`ruff`, `mypy`,
   `pytest`, `zizmor`, `actionlint`, ...).
-- `make test-e2e` (Docker): `make install && make lint test` in the uv image for every
+- `make test-e2e` (Docker): `make install && make lint test audit` in the uv image for every
   `python_version` and for GitLab (`tests/test_make.py`, without `make format` first),
   the production image, and, when installed, the generated GitHub workflow via `act` and the
   GitLab pipeline via `gitlab-ci-local`. CI runs them in `.github/workflows/e2e.yml`; keep its

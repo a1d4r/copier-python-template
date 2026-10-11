@@ -23,7 +23,7 @@ env:
 
 jobs:
   make-test:
-    name: make install lint test (${{ matrix.variant }})
+    name: make install lint test audit (${{ matrix.variant }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -48,7 +48,7 @@ jobs:
       - name: Run E2E test
         run: >
           uv run pytest
-          "tests/test_make.py::test_make_install_lint_test[${MATRIX_VARIANT}]"
+          "tests/test_make.py::test_make_install_lint_test_audit[${MATRIX_VARIANT}]"
           -v --timeout=300
         env:
           MATRIX_VARIANT: ${{ matrix.variant }}

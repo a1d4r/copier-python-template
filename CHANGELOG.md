@@ -27,7 +27,7 @@ workers, databases) are planned for later releases.
 - Packaging with `uv_build` (flat layout, `module-root = ""`); `.python-version` is generated
   and committed.
 - Dependency groups `lint`, `test`, `dev` (PEP 735) with lower bounds only.
-- `pip-audit` (`make audit`) over the locked runtime dependencies.
+- `uv audit` (`make audit`) over the locked runtime dependencies.
 - Makefile: `make` prints help; new targets `audit`, `run`, `docker-build`, `up`, `down`,
   `template-check` and `template-update` (`copier update --conflict inline`, stops on conflict
   markers, re-locks `uv.lock`).
@@ -40,8 +40,8 @@ workers, databases) are planned for later releases.
 - Copier: `_message_after_copy` / `_message_after_update` with next steps; a copy task formats
   the generated code for the chosen `line_length`.
 - Template repository: fast render matrix, `copier update` tests across releases,
-  `examples/` snapshot (`make examples`), e2e `make install && make lint test` for every Python
-  version and GitLab, this changelog.
+  `examples/` snapshot (`make examples`), e2e `make install && make lint test audit` for every
+  Python version and GitLab, this changelog.
 
 ### Changed
 
@@ -56,9 +56,9 @@ workers, databases) are planned for later releases.
 - Copier tasks never fail the generation: `git init --initial-branch=main` (unless already inside
   a repository) and `uv sync` run only on `copier copy`, `uv lock` only on `copier update`.
 - mypy: no global `ignore_missing_imports`, configured `files`; pytest: native `[tool.pytest]`,
-  strict mode, warnings are errors; `make test` requires 80% coverage (`COV_FAIL_UNDER`,
-  `__main__.py` omitted), a partial `pytest` run does not; ruff ignores
-  rules that break a fresh project on upgrades (`CPY`, `DOC`, opinionated preview rules).
+  strict mode, warnings are errors; coverage is reported without a threshold
+  (`__main__.py` omitted); ruff ignores rules that break a fresh project on upgrades (`CPY`,
+  `DOC`, opinionated preview rules).
 - Makefile: thin `uv` wrappers; `lint` runs `uv lock --check`, `ruff format --check`,
   `ruff check`, `mypy` and `deptry`; `clean` replaces `cleanup` and no longer walks into `.venv`.
 - Dockerfile: uv pinned in one `FROM ghcr.io/astral-sh/uv:X.Y.Z AS uv` stage, Debian trixie,

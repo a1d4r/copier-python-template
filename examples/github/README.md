@@ -128,8 +128,8 @@ Run `make` without arguments to list all targets.
 | `make install` | Create `.venv` and install the project with all dependency groups |
 | `make format` | Apply safe `ruff` fixes and format the code |
 | `make lint` | Check `uv.lock`, run `ruff`, `mypy` and `deptry` |
-| `make test` | Run `pytest` with coverage (fails below `COV_FAIL_UNDER`, 80%), reports go to `reports/` |
-| `make audit` | Check locked runtime dependencies with `pip-audit` |
+| `make test` | Run `pytest` with coverage, reports go to `reports/` |
+| `make audit` | Check locked runtime dependencies with `uv audit` |
 | `make update` | Upgrade all dependencies in `uv.lock` |
 | `make docker-build` | Build the production Docker image |
 | `make up` / `make down` | Start / stop Docker Compose services |

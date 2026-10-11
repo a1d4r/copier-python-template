@@ -101,8 +101,6 @@ omit = ["{{ package_name }}/__main__.py"]
 
 [tool.coverage.report]
 # https://coverage.readthedocs.io/en/latest/config.html#report
-# The threshold (`--cov-fail-under`) is set in `make test`, not here:
-# a partial run (`pytest tests/test_config.py`, `-k`, `--lf`) must not fail on it.
 exclude_also = [
   "if __name__ == .__main__.:",
   "if TYPE_CHECKING:",

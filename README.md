@@ -43,9 +43,9 @@ never overwrites these files and keeps updating only the tooling
 - Formatting and linting with [`ruff`](https://docs.astral.sh/ruff/) (all rules selected).
 - Type checks with [`mypy`](https://mypy.readthedocs.io) in strict mode with the pydantic plugin.
 - Unused and missing dependencies are found by [`deptry`](https://deptry.com/).
-- Vulnerability checks of the locked runtime dependencies with [`pip-audit`](https://github.com/pypa/pip-audit).
-- Testing with [`pytest`](https://docs.pytest.org/en/latest/) (strict mode, warnings are errors)
-  and a coverage threshold in `make test` (partial runs are not checked against it).
+- Vulnerability checks of the locked runtime dependencies with [`uv audit`](https://docs.astral.sh/uv/reference/cli/#uv-audit).
+- Testing with [`pytest`](https://docs.pytest.org/en/latest/) (strict mode, warnings are errors);
+  coverage is reported (terminal and `reports/coverage.xml`) without a threshold.
 - Ready-to-use [`pre-commit`](https://pre-commit.com/) hooks: ruff and mypy run from `uv.lock`,
   `uv lock --check`, and inline conflicts left by `copier update` are caught.
 - Ready-to-use [`.editorconfig`](template/.editorconfig), [`.dockerignore`](template/.dockerignore.jinja), and [`.gitignore`](template/.gitignore).
@@ -61,7 +61,7 @@ never overwrites these files and keeps updating only the tooling
   on the `ghcr.io/astral-sh/uv` image: `lint`, `codequality`, `test` (coverage, JUnit and
   Code Quality reports), `audit` and `docker-build` (Docker-in-Docker) jobs,
   interruptible, for merge requests, the default branch and tags.
-- `audit` (`pip-audit`) does not block pull/merge requests and fails on the default branch.
+- `audit` (`uv audit`) does not block pull/merge requests and fails on the default branch.
 - Multi-stage [Dockerfile](template/Dockerfile.jinja): the production image contains only
   Python and the virtual environment with the app installed as a package, runs as a non-root
   user (`10001`) and logs JSON; the build context is limited by an allowlist
@@ -184,8 +184,8 @@ Run `make` without arguments to list all targets.
 | `make pre-commit-install` | Install git pre-commit hooks |
 | `make format` | Apply safe `ruff` fixes and format the code |
 | `make lint` | `uv lock --check`, `ruff format --check`, `ruff check`, `mypy`, `deptry` |
-| `make test` | `pytest` with coverage (`--cov-fail-under=$(COV_FAIL_UNDER)`, 80), reports go to `reports/` |
-| `make audit` | `pip-audit` over `uv export --locked` (runtime dependencies) |
+| `make test` | `pytest` with coverage, reports go to `reports/` |
+| `make audit` | `uv audit --locked --no-default-groups` (runtime dependencies) |
 | `make run` | Run the application (`python -m <package>`) |
 | `make update` | Upgrade all dependencies in `uv.lock` |
 | `make docker-build` | Build the production Docker image |
